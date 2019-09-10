@@ -4,11 +4,13 @@ import net.wedjaa.wetnet.business.BusinessesException;
 import net.wedjaa.wetnet.business.commons.DateUtil;
 import net.wedjaa.wetnet.business.commons.LinearRegression;
 import net.wedjaa.wetnet.business.commons.NumberUtil;
+import net.wedjaa.wetnet.business.commons.PropertiesUtil;
 import net.wedjaa.wetnet.business.dao.DataDistrictsDAO;
 import net.wedjaa.wetnet.business.dao.DataMeasuresDAO;
 import net.wedjaa.wetnet.business.dao.DistrictsDAO;
 import net.wedjaa.wetnet.business.dao.DistrictsDayStatisticDAO;
 import net.wedjaa.wetnet.business.dao.DistrictsEnergyDayStatisticDAO;
+import net.wedjaa.wetnet.business.dao.EventsDAO;
 import net.wedjaa.wetnet.business.dao.MeasuresDayStatisticDAO;
 import net.wedjaa.wetnet.business.dao.UsersCFGSChildDAO;
 import net.wedjaa.wetnet.business.dao.UsersCFGSParentDAO;
@@ -19,7 +21,10 @@ import net.wedjaa.wetnet.business.domain.DayStatisticJoinMeasures;
 import net.wedjaa.wetnet.business.domain.Districts;
 import net.wedjaa.wetnet.business.domain.DistrictsBandsHistory;
 import net.wedjaa.wetnet.business.domain.DistrictsDayStatistic;
+import net.wedjaa.wetnet.business.domain.DistrictsLevelInhabitantsData;
+import net.wedjaa.wetnet.business.domain.DistrictsLevelLengthData;
 import net.wedjaa.wetnet.business.domain.EpdIedIela;
+import net.wedjaa.wetnet.business.domain.Events;
 import net.wedjaa.wetnet.business.domain.G2Data;
 import net.wedjaa.wetnet.business.domain.G2DataDB;
 import net.wedjaa.wetnet.business.domain.G3Data;
@@ -28,6 +33,7 @@ import net.wedjaa.wetnet.business.domain.G5Data;
 import net.wedjaa.wetnet.business.domain.G6Data;
 import net.wedjaa.wetnet.business.domain.G7Data;
 import net.wedjaa.wetnet.business.domain.G8Data;
+import net.wedjaa.wetnet.business.domain.G12Data;
 import net.wedjaa.wetnet.business.domain.G8DataDB;
 import net.wedjaa.wetnet.business.domain.Measures;
 import net.wedjaa.wetnet.business.domain.Users;
@@ -35,6 +41,9 @@ import net.wedjaa.wetnet.business.domain.UsersCFGSChild;
 import net.wedjaa.wetnet.business.domain.UsersCFGSParent;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
@@ -44,7 +53,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.beans.PropertyDescriptor;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,8 +66,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalInt;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+
+// RQ 06-2019
+import com.github.servicenow.ds.stats.stl.SeasonalTrendLoess;
 
 /**
  * @author massimo ricci
@@ -65,6 +81,8 @@ import java.util.TreeSet;
 @SuppressWarnings({ "unused", "unused" })
 public class GraphicServiceImpl implements GraphicService {
 
+    @Autowired
+    private PropertiesUtil propertiesSource;
     @Autowired
     private DistrictsDAO districtsDAO;
     @Autowired
@@ -84,6 +102,10 @@ public class GraphicServiceImpl implements GraphicService {
     @Autowired
     private UsersCFGSChildDAO cfgsChildDAO;
     //***END***
+
+    /*RQ 05-2019 */
+    @Autowired
+    private EventsDAO eventsDAO;
 
     private static Logger log = LoggerFactory.getLogger(GraphicServiceImpl.class);
 
@@ -509,8 +531,68 @@ public class GraphicServiceImpl implements GraphicService {
         return list;
     }
 
-    
-    
+    // RQ 07-2019
+    public G2Data getG2DataCompare(G2Data g2Data) {
+        Date endDate = g2Data.getEndDate();
+        Date startDate = g2Data.getStartDate();
+        String formattedStartDate = new SimpleDateFormat("dd/MM/yyyy").format(startDate);
+        String formattedEndDate = new SimpleDateFormat("dd/MM/yyyy").format(endDate);
+        g2Data.setEndDate(startDate);
+        g2Data = this.getG2Data(g2Data);
+        String colName = "";
+        ArrayList<ArrayList> oldCols = (ArrayList) g2Data.getColumns();
+        List<Object> newCols = new ArrayList<Object>();
+        List<Object> newMedie = new ArrayList<Object>();
+        
+        //calcolo medie 1
+        ArrayList<HashMap<String, String>> oldMedie = (ArrayList) g2Data.getMedie();
+        HashMap<String, String> medie = new HashMap<>();
+        for (HashMap<String, String> media: oldMedie){
+            medie.putAll(media);
+        }        
+
+        //asse x
+        newCols.add(oldCols.get(0));
+
+        for(int i=1; i<oldCols.size(); i++){
+            ArrayList graphicStartData = oldCols.get(i);
+            Object[] colArray = graphicStartData.toArray();
+            HashMap<String, String> media = new HashMap<String, String>();
+            colName = colArray[0]+" "+formattedStartDate;
+            media.put(colName, medie.get(colArray[0]));
+            colArray[0] = colName;
+            newMedie.add(media);
+            newCols.add(colArray);
+        }
+
+        g2Data.setStartDate(endDate);
+        g2Data.setEndDate(endDate);
+        g2Data = this.getG2Data(g2Data);
+        colName = "";
+        oldCols = (ArrayList) g2Data.getColumns();
+
+        //calcolo medie 2
+        oldMedie = (ArrayList) g2Data.getMedie();
+        medie = new HashMap<>();
+        for (HashMap<String, String> media: oldMedie){
+            medie.putAll(media);
+        }
+
+        for(int i=1; i<oldCols.size(); i++){
+            ArrayList graphicEndData = oldCols.get(i);
+            Object[] colArray = graphicEndData.toArray();
+            HashMap<String, String> media = new HashMap<String, String>();
+            colName = colArray[0]+" "+formattedEndDate;
+            media.put(colName, medie.get(colArray[0]));
+            colArray[0] = colName;
+            newMedie.add(media);
+            newCols.add(colArray);
+        }
+
+        g2Data.setColumns(newCols);
+        g2Data.setMedie(newMedie);
+        return g2Data;
+    }
    
     /**
      * {@inheritDoc}
@@ -4631,11 +4713,15 @@ private List<DistrictsBandsHistory> getBandsMedia(List<DistrictsBandsHistory>lis
 	return media;
 }
 
+
 private G7Data buildG7Json(G7Data g7Data){
 	
-	  //Costruisce JSON da inviare
+	//Costruisce JSON da inviare
     g7Data.getColumns().clear();
     g7Data.getMedie().clear();
+
+    /*RQ 05-2019 */
+    g7Data.getEvents().clear();
   
 	List<DayStatisticJoinDistrictsJoinEnergy> listJoin = new ArrayList<DayStatisticJoinDistrictsJoinEnergy>();
 	List<DistrictsBandsHistory> listBands = new ArrayList<DistrictsBandsHistory>();
@@ -4643,7 +4729,9 @@ private G7Data buildG7Json(G7Data g7Data){
 	List<DistrictsBandsHistory> medieBandsHistory=new ArrayList<DistrictsBandsHistory>();
 	
 	List<DayStatisticJoinMeasures> listJoinmeasures = new ArrayList<DayStatisticJoinMeasures>();
-	List<DayStatisticJoinMeasures> listMeasuresAvg =  new ArrayList<DayStatisticJoinMeasures>();
+    List<DayStatisticJoinMeasures> listMeasuresAvg =  new ArrayList<DayStatisticJoinMeasures>();
+    
+    List<Object> listEventsDistrict = new ArrayList<Object>();;
 	
 	for(Districts distretto : g7Data.getDistrictsSelected())
 	{
@@ -4652,9 +4740,8 @@ private G7Data buildG7Json(G7Data g7Data){
 	//if(g7Data.getdVariables().isEnergy()){
 		districtsResultList = districtsDayStatisticDAO.getDayStatisticJoinDistrictsJoinEnergy(g7Data.getStartDate(), g7Data.getEndDate(), distretto.getIdDistricts());
 	//}
-     listJoin.addAll(districtsResultList);
-     
-     
+     listJoin.addAll(districtsResultList);     
+
      List<DistrictsBandsHistory> bandsHistory = new ArrayList<DistrictsBandsHistory> ();
      if(g7Data.getdVariables().isHighBand() || g7Data.getdVariables().isLowBand()){
     	 bandsHistory = districtsDAO.getBandsHistoryByDateDistrictonDays(g7Data.getStartDate(),g7Data.getEndDate(), distretto.getIdDistricts());
@@ -4729,8 +4816,7 @@ private G7Data buildG7Json(G7Data g7Data){
      
      
      medieBandsHistory.addAll(avgBH);
-    }
-	
+    }	
 	
 	for(Measures m : g7Data.getMeasuresSelected())
 	{
@@ -4753,10 +4839,8 @@ private G7Data buildG7Json(G7Data g7Data){
  	  xList.add(DateUtil.SDTF2SIMPLEUSA.print(dat.getTime()));
     }
     
-    g7Data.getColumns().add(xList);
+    g7Data.getColumns().add(xList);      
     
-    
-   
     //DIstretti
     for(Districts distretto : g7Data.getDistrictsSelected())
 	{
@@ -4793,7 +4877,12 @@ private G7Data buildG7Json(G7Data g7Data){
     listEPD.add(distretto.getName() + " - EPD [Kwh]");
     listIED.add(distretto.getName() + " - IED [Kwh/mc]");
     listIELA.add(distretto.getName() + " - IELA [Kwh]");
+
     
+    /*RQ 03-2019*/
+    List<Object> listRateReal = new ArrayList<Object>();
+    listRateReal.add(distretto.getName() + " - %Real");  
+
      
     /* GC 13/11/2015 - ricavo la bands history*/  
     List<DistrictsBandsHistory> bandsHistory = districtsBandsHistoryByDistrictId(distretto.getIdDistricts(),listBands);
@@ -4840,7 +4929,11 @@ private G7Data buildG7Json(G7Data g7Data){
 	   Object minDay="";
 	   Object range="";
 	   Object standardDeviation="";
-	   Object realLeakage="";
+       Object realLeakage="";
+       
+       /*RQ 03-2019 */ 
+       Object rateReal="";
+
 	  // Object highBand="";
 	  // Object lowBand="";
 	   
@@ -4869,8 +4962,12 @@ private G7Data buildG7Json(G7Data g7Data){
      	   nightUse=NumberUtil.roundToAnyDecimal(d.getHouseholdNightUse() + d.getNotHouseholdNightUse(), 2);
      	   epd=NumberUtil.roundToAnyDecimal(d.getEpd(), 2);
      	   ied=NumberUtil.roundToAnyDecimal(d.getIed(), 3);
-     	   iela=NumberUtil.roundToAnyDecimal(d.getIela(), 2);	
-     	   break;
+     	   iela=NumberUtil.roundToAnyDecimal(d.getIela(), 2);
+           
+           /*RQ 03-2019 */
+           rateReal=NumberUtil.roundToAnyDecimal(d.getRealLeakage() / (d.getAvgDay() - distretto.getRewarded_water()),2);
+
+           break;
     	}
      }
     
@@ -4886,6 +4983,9 @@ private G7Data buildG7Json(G7Data g7Data){
     listEPD.add(epd);
     listIED.add(ied);
     listIELA.add(iela);
+    
+    /*RQ 03-2019 */
+    listRateReal.add(rateReal);
     
     /***********GC 09122015*************/
     /*
@@ -4925,6 +5025,8 @@ private G7Data buildG7Json(G7Data g7Data){
     if(highBand.trim().length()>0) tempHB = highBand;
     if(lowBand.trim().length()>0) tempLB = lowBand;
     /**************************************/
+
+    
     
    }
     
@@ -4975,6 +5077,52 @@ private G7Data buildG7Json(G7Data g7Data){
         g7Data.getColumns().add(listIELA);
     if (g7Data.getdVariables().isIed())
         g7Data.getColumns().add(listIED);
+
+    /*RQ 03-2019 */
+    if (g7Data.getdVariables().isRateReal())
+        if (distretto.getNot_household_night_use()>0 && distretto.getHousehold_night_use()>0)
+            g7Data.getColumns().add(listRateReal);
+    
+    /*RQ 05-2019 */
+    List<String> columnNames = new ArrayList<String>(); 
+    columnNames.add(distretto.getName() + " - MIN_NIGHT [l/s]");
+    columnNames.add(distretto.getName() + " - AVG_DAY [l/s]");
+    columnNames.add(distretto.getName() + " - VOLUME_REAL_LOSSES [mc/day]");
+    columnNames.add(distretto.getName() + " - MAX_DAY [l/s]");
+    columnNames.add(distretto.getName() + " - MIN_DAY [l/s]");
+    columnNames.add(distretto.getName() + " - RANGE [l/s]");
+    columnNames.add(distretto.getName() + " - STANDARD_DEVIATION [l/s]");
+    columnNames.add(distretto.getName() + " - REAL_LEAKAGE [l/s]");
+    columnNames.add(distretto.getName() + " - LOW_BAND [l/s]");
+    columnNames.add(distretto.getName() + " - HIGH_BAND [l/s]");
+    columnNames.add(distretto.getName() + " - NIGHT_USE [l/s]");
+    columnNames.add(distretto.getName() + " - EPD [Kwh]");
+    columnNames.add(distretto.getName() + " - IED [Kwh/mc]");
+    columnNames.add(distretto.getName() + " - IELA [Kwh]");
+    columnNames.add(distretto.getName() + " - %Real");
+
+    List<Events> eventsDistrictResult = eventsDAO.getByDateAndDistrictId(distretto.getIdDistricts(), g7Data.getStartDate(), g7Data.getEndDate());
+    int indexCounter = 0;
+    List<Integer> indexList = new ArrayList<Integer>();
+    List<Date> listDates = new ArrayList<Date>(dates);
+    for(Date dat: dates){
+        OptionalInt eventoAccaduto = eventsDistrictResult.stream()
+                                    .filter(c ->{
+                                        boolean isDay = c.getDay().compareTo(dat)==0;
+                                        boolean isType = c.getType().equals("5");
+                                        return isDay && isType;
+                                    })
+                                    .mapToInt(c -> listDates.indexOf(dat))
+                                    .findFirst();
+        if (eventoAccaduto.isPresent())
+            indexList.add(eventoAccaduto.getAsInt());
+    }
+
+    
+    List<Object> districtEventsArray = new ArrayList<Object>();
+    districtEventsArray.add(columnNames);
+    districtEventsArray.add(indexList);
+    g7Data.getEvents().add(districtEventsArray);
     
     
     /*GC 04/11/2015 - calcolo medie */
@@ -5238,6 +5386,162 @@ private G7Data buildG7Json(G7Data g7Data){
     return g7Data;
 }
 
+// RQ 06-2019
+private G12Data buildG12Json(G12Data g12Data){
+
+    // Costruisce JSON da inviare
+    g12Data.getMedie().clear();
+
+    List<DayStatisticJoinDistrictsJoinEnergy> listJoin = new ArrayList<DayStatisticJoinDistrictsJoinEnergy>();
+    List<DistrictsBandsHistory> listBands = new ArrayList<DistrictsBandsHistory>();
+    List<DayStatisticJoinMeasures> listJoinmeasures = new ArrayList<DayStatisticJoinMeasures>();
+    List<DayStatisticJoinMeasures> listMeasuresAvg = new ArrayList<DayStatisticJoinMeasures>();
+    List<Object> listEventsDistrict = new ArrayList<Object>();
+
+    // Inizializzazione variabili per la destagionalizzazione
+    HashMap<String,Object> seasonalTrend = new HashMap<String,Object>();
+
+    for (Districts distretto : g12Data.getDistrictsSelected()) {
+
+        List<DayStatisticJoinDistrictsJoinEnergy> districtsResultList = new ArrayList<DayStatisticJoinDistrictsJoinEnergy>();
+        districtsResultList = districtsDayStatisticDAO.getDayStatisticJoinDistrictsJoinEnergyonMonths(
+                g12Data.getStartDate(), g12Data.getEndDate(), distretto.getIdDistricts());
+        listJoin.addAll(districtsResultList);
+
+        List<DistrictsBandsHistory> bandsHistory = new ArrayList<DistrictsBandsHistory>();
+        if (g12Data.getdVariables().isHighBand() || g12Data.getdVariables().isLowBand()) {
+            bandsHistory = districtsDAO.getBandsHistoryByDateDistrictonMonths(g12Data.getStartDate(),
+                    g12Data.getEndDate(), distretto.getIdDistricts());
+        }
+
+        /* 16/02/2016 */
+        if (bandsHistory.size() == 0) {
+            // non ho trovato alcun valore nel range di date selezionato
+            // seleziono il primo valore utile delle bande > enddate
+            bandsHistory = districtsDAO.getFirstBandsHistoryByDistrictsOnTimestampAsc(g12Data.getStartDate(),
+                    g12Data.getEndDate(), distretto.getIdDistricts());
+
+            if (bandsHistory.size() == 0) {
+                // non ho trovato alcun valore nel range di date selezionato
+                // seleziono l'ultimo valore utile delle bande < enddate
+                bandsHistory = districtsDAO.getLastBandsHistoryByDistrictsOnTimestampDesc(g12Data.getStartDate(),
+                        g12Data.getEndDate(), distretto.getIdDistricts());
+            }
+
+            if (bandsHistory.size() > 0) {
+                DistrictsBandsHistory temp = bandsHistory.get(0);
+                temp.setTimestamp(g12Data.getEndDate());
+                ;
+                bandsHistory.set(0, temp);
+            }
+        }
+
+        listBands.addAll(bandsHistory);
+    }
+
+    for (Measures m : g12Data.getMeasuresSelected()) {
+
+        List<DayStatisticJoinMeasures> measuresResultList = measuresDayStatisticDAO
+                .getDayStatisticJoinMeasuresonMonths(g12Data.getStartDate(), g12Data.getEndDate(), m.getIdMeasures());
+        listJoinmeasures.addAll(measuresResultList);
+
+        List<DayStatisticJoinMeasures> measuresResultListAvg = measuresDayStatisticDAO
+                .getDayStatisticJoinMeasuresAvg(g12Data.getStartDate(), g12Data.getEndDate(), m.getIdMeasures());
+        listMeasuresAvg.addAll(measuresResultListAvg);
+    }
+
+    Set<Date> dates = g12getDatesDistrictsMeasures(listJoin, listBands, listJoinmeasures, listMeasuresAvg, g12Data);  
+
+    // Costruisce asse x
+    List<Object> xList = new ArrayList<Object>();
+    xList.add("x");
+    for (Date dat : dates) {
+        xList.add(DateUtil.SDTF2SIMPLEUSA.print(dat.getTime()));
+    }
+
+    // Distretti
+    for (Districts distretto : g12Data.getDistrictsSelected()) {
+
+        List<DayStatisticJoinDistrictsJoinEnergy> districtsResultList = districtsResultListByDistrictId(
+                distretto.getIdDistricts(), listJoin);
+
+        List<Object> tempMinNight = new ArrayList<Object>();
+        List<Object> tempMinDay = new ArrayList<Object>();
+        List<Object> tempMaxDay = new ArrayList<Object>();
+        List<Object> tempAvgDay = new ArrayList<Object>();
+
+        for (Date dat : dates) {
+            for (DayStatisticJoinDistrictsJoinEnergy d : districtsResultList) {
+                if (dat.getTime() == d.getDay().getTime()) {
+                    tempMinNight.add( NumberUtil.roundToAnyDecimal(d.getMinNight(), 2));
+                    tempAvgDay.add(NumberUtil.roundToAnyDecimal(d.getAvgDay(), 2));
+                    tempMaxDay.add(NumberUtil.roundToAnyDecimal(d.getMaxDay(), 2));
+                    tempMinDay.add(NumberUtil.roundToAnyDecimal(d.getMinDay(), 2));
+                    break;
+                }
+            }
+        }        
+
+        if (g12Data.getdVariables().isMinNight())
+            g12Data.setColumns(getSeasonalTrendLoss(distretto.getName() + " - MIN_NIGHT [l/s]",tempMinNight, xList));
+        if (g12Data.getdVariables().isAvgDay())
+            g12Data.setColumns(getSeasonalTrendLoss(distretto.getName() + " - AVG_DAY [l/s]",tempAvgDay, xList));
+        if (g12Data.getdVariables().isMaxDay())
+            g12Data.setColumns(getSeasonalTrendLoss(distretto.getName() + " - MAX_DAY [l/s]",tempMaxDay, xList));
+        if (g12Data.getdVariables().isMinDay())
+            g12Data.setColumns(getSeasonalTrendLoss(distretto.getName() + " - MIN_DAY [l/s]",tempMinDay, xList));
+
+    }
+
+    // Measure
+    for (Measures measure : g12Data.getMeasuresSelected()) {
+
+        List<DayStatisticJoinMeasures> measuresResultList = getMeasureDayStatistic(measure.getIdMeasures(),listJoinmeasures);
+
+        // Costruisce assi y
+        List<Object> listMinNight = new ArrayList<Object>();
+        List<Object> listAvgDay = new ArrayList<Object>();
+        List<Object> listMaxDay = new ArrayList<Object>();
+        List<Object> listMinDay = new ArrayList<Object>();
+
+        for (Date dat : dates) {
+            Object minNight = "";
+            Object avgDay = "";
+            Object maxDay = "";
+            Object minDay = "";
+
+            for (DayStatisticJoinMeasures m : measuresResultList) {
+
+                if (dat.getTime() == m.getDay().getTime()) {
+                    minNight = NumberUtil.roundToAnyDecimal(m.getMinNight(), 2);
+                    avgDay = NumberUtil.roundToAnyDecimal(m.getAvgDay(), 2);
+                    maxDay = NumberUtil.roundToAnyDecimal(m.getMaxDay(), 2);
+                    minDay = NumberUtil.roundToAnyDecimal(m.getMinDay(), 2);
+                    break;
+                }
+            }
+
+            listMinNight.add(minNight);
+            listAvgDay.add(avgDay);
+            listMaxDay.add(maxDay);
+            listMinDay.add(minDay);
+        }
+
+        // Costruisce JSON da inviare
+        if (g12Data.getmVariables().isMinNight())
+            g12Data.setColumns(getSeasonalTrendLoss(measure.getName() + " - MIN_NIGHT [l/s]", listMinNight, xList));
+        if (g12Data.getmVariables().isAvgDay())
+            g12Data.setColumns(getSeasonalTrendLoss(measure.getName() + " - AVG_DAY [l/s]", listAvgDay, xList));
+        if (g12Data.getmVariables().isMaxDay())
+            g12Data.setColumns(getSeasonalTrendLoss(measure.getName() + " - MAX_DAY [l/s]", listMaxDay, xList));
+        if (g12Data.getmVariables().isMinDay())
+            g12Data.setColumns(getSeasonalTrendLoss(measure.getName() + " - MIN_DAY [l/s]", listMinDay, xList));
+
+    }
+
+    return g12Data;
+}
+
 
 /*GC 16/11/2015*
  */
@@ -5292,7 +5596,54 @@ private G7Data buildG7Json(G7Data g7Data){
 	           
                
        return dates;
-	}
+    }
+
+    private Set<Date> g12getDatesDistrictsMeasures(List<DayStatisticJoinDistrictsJoinEnergy> districtsResultList,
+            List<DistrictsBandsHistory> bandsHistory, List<DayStatisticJoinMeasures> measuresDayStatistic,
+            List<DayStatisticJoinMeasures> measuresDayStatisticAvg, G12Data g12Data) {
+
+        Set<Date> dates = new TreeSet<Date>(new Comparator<Date>() {
+            @Override
+            public int compare(Date o1, Date o2) {
+                return o1.compareTo(o2);
+            }
+        });
+
+        for (DayStatisticJoinDistrictsJoinEnergy d : districtsResultList) {
+
+            LinkedHashMap<String, Boolean> checkList = getCheckboxListByDistricts("" + d.getIdDistricts(),
+                    g12Data.getCheckboxList());
+
+            if ((checkList != null && checkList.get("minnight")) || (checkList != null && checkList.get("avgday"))
+                    || (checkList != null && checkList.get("maxday")) || (checkList != null && checkList.get("minday"))
+                    || g12Data.getdVariables().isRange() || g12Data.getdVariables().isStandardDeviation()
+                    || g12Data.getdVariables().isRealLeakage() || g12Data.getdVariables().isVolumeRealLosses()
+                    || g12Data.getdVariables().isNightUse() || g12Data.getdVariables().isIed()
+                    || g12Data.getdVariables().isEpd() || g12Data.getdVariables().isIela()) {
+
+                dates.add(d.getDay());
+            }
+        }
+
+        // Gra
+        if (g12Data.getdVariables().isHighBand() || g12Data.getdVariables().isLowBand()) {
+            for (DistrictsBandsHistory dBH : bandsHistory) {
+                dates.add(dBH.getTimestamp());
+            }
+        }
+
+        if (g12Data.getmVariables().isMinNight() || g12Data.getmVariables().isAvgDay()
+                || g12Data.getmVariables().isMaxDay() || g12Data.getmVariables().isMinDay()
+                || g12Data.getmVariables().isRange() || g12Data.getmVariables().isStandardDeviation()
+                || g12Data.getmVariables().isHighBand() || g12Data.getmVariables().isLowBand()) {
+            for (DayStatisticJoinMeasures dBH : measuresDayStatistic) {
+
+                dates.add(dBH.getDay());
+            }
+        }
+
+        return dates;
+    }
  
  	//***RC 02/12/2015***
  	public boolean saveG2Configuration(G2Data g2Data, int idUser) {
@@ -5455,7 +5806,122 @@ private G7Data buildG7Json(G7Data g7Data){
 		 }
 		 
 	     return resultList;
-	 }
+     }
+
+    public HashMap<String,Object> getSeasonalTrendLoss(String columnName, List<Object> values, List<Object> xList){
+
+        HashMap<String,Object> seasonalTrendLoss = new HashMap<String,Object>();
+        List<Object> colTimeSeries = new ArrayList<Object>();
+        List<Object> colSeasonal = new ArrayList<Object>();
+        List<Object> colTrend = new ArrayList<Object>();
+        List<Object> colResidual = new ArrayList<Object>();
+
+        colTimeSeries.add(xList);
+        colSeasonal.add(xList);
+        colTrend.add(xList);
+        colResidual.add(xList);     
+        
+        if ((values.size()-1)<24){
+            throw new BusinessesException("Not enough data to elaborate: " +(values.size()-1)+"/24" );
+        }
+
+        double[] dvalues = values.stream().mapToDouble(i -> (Double) i).toArray();
+        SeasonalTrendLoess.Builder builder = new SeasonalTrendLoess.Builder();
+
+        //Aggiungere un alert per un range minimo di 2 anni
+        SeasonalTrendLoess smoother = builder.
+                                    setPeriodLength(12).
+                                    setSeasonalWidth(35).
+                                    setNonRobust().
+                                    buildSmoother(dvalues);
+        SeasonalTrendLoess.Decomposition stl = smoother.decompose();
+
+        double[] seasonal = stl.getSeasonal();
+        double[] trend = stl.getTrend();
+        double[] residual = stl.getResidual();
+
+        List<Object> seasonalList = new ArrayList<Object>();
+        List<Object> trendList = new ArrayList<Object>();
+        List<Object> residualList = new ArrayList<Object>();
+
+        values.add(0, columnName);
+        seasonalList.add(columnName);
+        trendList.add(columnName);
+        residualList.add(columnName);
+
+        for (int i=0; i<seasonal.length;i++){
+            seasonalList.add(NumberUtil.roundToAnyDecimal(seasonal[i], 2));
+            trendList.add(NumberUtil.roundToAnyDecimal(trend[i],2));
+            residualList.add(NumberUtil.roundToAnyDecimal(residual[i],2));
+        }
+
+        colTimeSeries.add(values);
+        colSeasonal.add(seasonalList);
+        colTrend.add(trendList);
+        colResidual.add(residualList);
+    
+        seasonalTrendLoss.put("timeSeries", colTimeSeries);
+        seasonalTrendLoss.put("trend", colTrend);
+        seasonalTrendLoss.put("seasonal", colSeasonal);
+        seasonalTrendLoss.put("residual", colResidual);
+
+        return seasonalTrendLoss;
+    } 
+    
+    // RQ 06-2019
+    public boolean saveG12Configuration(G12Data g12Data, int idUser) {
+	     
+        Date currentDate = new Date();
+        
+        UsersCFGSParent cfgsParent = new UsersCFGSParent();
+        
+        cfgsParent.setDescription(g12Data.getDescriptionConfiguration());
+        cfgsParent.setSave_date(currentDate);
+        cfgsParent.setGranularity(0);//SOLO PER G8
+        cfgsParent.setMenu_function(1);//GRAFICI
+        cfgsParent.setSubmenu_function(7);//G7
+        cfgsParent.setUsers_idusers(idUser);
+        cfgsParent.setTime_base(0);//SOLO PER G8
+        
+        boolean resultList = cfgsParentDAO.saveConfiguration(cfgsParent);
+        
+        if(resultList){
+            if(g12Data.getDistrictsSelected().size() > 0){
+                for(int i=0; i<g12Data.getDistrictsSelected().size(); i++){
+                    
+                    UsersCFGSChild cfgsChild = new UsersCFGSChild();
+                    
+                    cfgsChild.setObjectid(g12Data.getDistrictsSelected().get(i).getIdDistricts());
+                    cfgsChild.setProgressive(i+1);
+                    cfgsChild.setType(1);//1 = DISTRETTO
+                    cfgsChild.setUsers_cfgs_parent_menu_function(1);//GRAFICI
+                    cfgsChild.setUsers_cfgs_parent_save_date(currentDate);
+                    cfgsChild.setUsers_cfgs_parent_submenu_function(7);//G7
+                    cfgsChild.setUsers_idusers(idUser);
+                    
+                    resultList = cfgsChildDAO.saveChild(cfgsChild);
+                }
+            }
+            if(g12Data.getMeasuresSelected().size() > 0){
+                for(int i=0; i<g12Data.getMeasuresSelected().size(); i++){
+                    
+                    UsersCFGSChild cfgsChild = new UsersCFGSChild();
+                    
+                    cfgsChild.setObjectid(g12Data.getMeasuresSelected().get(i).getIdMeasures());
+                    cfgsChild.setProgressive(i+1);
+                    cfgsChild.setType(2);//2 = MISURA
+                    cfgsChild.setUsers_cfgs_parent_menu_function(1);//GRAFICI
+                    cfgsChild.setUsers_cfgs_parent_save_date(currentDate);
+                    cfgsChild.setUsers_cfgs_parent_submenu_function(7);//G7
+                    cfgsChild.setUsers_idusers(idUser);
+                    
+                    resultList = cfgsChildDAO.saveChild(cfgsChild);
+                }
+            }
+        }
+        
+        return resultList;
+    }
  	
  	public List readAllConfigurations(UsersCFGSParent parent) {
 	     
@@ -5490,5 +5956,140 @@ private G7Data buildG7Json(G7Data g7Data){
      }
      return null;
     }
- 
+
+    @Override
+    public List<DistrictsLevelLengthData> getG10Data() {
+        List<DistrictsLevelLengthData> result = new ArrayList<>();
+
+        int maxDistrictMapLevel = 4;
+        int maxEventVariableType = 4;
+        double districtsTotalLength = Double.valueOf(propertiesSource.getProperty("ini.km"));
+
+        // Init result
+        for (int i = 0; i <= maxDistrictMapLevel; i++) {
+            for (int j = 0; j <= maxEventVariableType; j++) {
+                DistrictsLevelLengthData d = new DistrictsLevelLengthData();
+                d.setMapLevel(i);
+                d.setEventVariableType(j);
+                d.setDistrictsLength(new ArrayList<>());
+
+                // Create random data for testing
+//                for (int k = 0; k < RandomUtils.nextInt(3, 21); k++) {
+//                    d.getDistrictsLength().add(new Double(RandomUtils.nextInt(1, 101)));
+//                }
+//                d.setDistrictsLengthSum(d.getDistrictsLength().stream().mapToDouble(f -> f.doubleValue()).sum());
+//                d.setDistrictsCount(d.getDistrictsLength().size());
+//                d.setDistrictsLengthPercetage(NumberUtil.percentage(d.getDistrictsLengthSum(), districtsTotalLength, 2));
+
+                result.add(d);
+            }
+        }
+        List<DistrictsLevelLengthData> data = districtsDAO.getDistrictsLengthMainByMapLevel();
+        log.debug("Read data from db size: " + data.size());
+        for (DistrictsLevelLengthData d : data) {
+            d.setDistrictsLengthSum(d.getDistrictsLength().stream().mapToDouble(f -> f.doubleValue()).sum());
+            d.setDistrictsCount(d.getDistrictsLength().size());
+            d.setDistrictsLengthPercetage(NumberUtil.percentage(d.getDistrictsLengthSum(), districtsTotalLength, 2));
+            result.set(d.getMapLevel() * (maxEventVariableType + 1) + d.getEventVariableType(), d);
+        }
+        return result;
+    }
+
+    @Override
+    public byte[] getG10DataCSV() {
+     ByteArrayOutputStream baos = null;
+     try {
+         baos = new ByteArrayOutputStream();
+         CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(baos), CSVFormat.EXCEL.withHeader("level", "ev_variable_type", "count", "length", "percentage"));
+         for (DistrictsLevelLengthData d : getG10Data()) {
+             csvPrinter.print(d.getMapLevel());
+             csvPrinter.print(d.getEventVariableType());
+             csvPrinter.print(d.getDistrictsCount());
+             csvPrinter.print(d.getDistrictsLengthSum());
+             csvPrinter.print(d.getDistrictsLengthPercetage());
+             csvPrinter.println();
+         }
+         csvPrinter.close();
+         return baos.toByteArray();
+     } catch (Exception e) {
+         new BusinessesException("Error on CSV Generation", e);
+     } finally {
+         IOUtils.closeQuietly(baos);
+     }
+     return null;
+    }
+
+    @Override
+    public List<DistrictsLevelInhabitantsData> getG11Data() {
+        List<DistrictsLevelInhabitantsData> result = new ArrayList<>();
+
+        int maxDistrictMapLevel = 4;
+        int maxEventVariableType = 4;
+        long districtsTotalInhabitants = Long.valueOf(propertiesSource.getProperty("ini.abitanti"));
+
+        // Init result
+        for (int i = 0; i <= maxDistrictMapLevel; i++) {
+            for (int j = 0; j <= maxEventVariableType; j++) {
+                DistrictsLevelInhabitantsData d = new DistrictsLevelInhabitantsData();
+                d.setMapLevel(i);
+                d.setEventVariableType(j);
+                d.setDistrictsInhabitants(new ArrayList<>());
+                result.add(d);
+            }
+        }
+
+        List<DistrictsLevelInhabitantsData> data = districtsDAO.getDistrictsInhabitantsByMapLevel();
+        log.debug("Read data from db size: " + data.size());
+        for (DistrictsLevelInhabitantsData d : data) {
+            d.setDistrictsInhabitantsSum(d.getDistrictsInhabitants().stream().mapToLong(f -> f).sum());
+            d.setDistrictsCount(d.getDistrictsInhabitants().size());
+            d.setDistrictsInhabitantsPercetage(NumberUtil.percentage(d.getDistrictsInhabitantsSum(), districtsTotalInhabitants, 2));
+            result.set(d.getMapLevel() * (maxEventVariableType + 1) + d.getEventVariableType(), d);
+        }
+        return result;
+    }
+
+    @Override
+    public byte[] getG11DataCSV() {
+        ByteArrayOutputStream baos = null;
+        try {
+            baos = new ByteArrayOutputStream();
+            CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(baos), CSVFormat.EXCEL.withHeader("level", "ev_variable_type", "count", "inhabitants", "percentage"));
+            for (DistrictsLevelInhabitantsData d : getG11Data()) {
+                csvPrinter.print(d.getMapLevel());
+                csvPrinter.print(d.getEventVariableType());
+                csvPrinter.print(d.getDistrictsCount());
+                csvPrinter.print(d.getDistrictsInhabitantsSum());
+                csvPrinter.print(d.getDistrictsInhabitantsPercetage());
+                csvPrinter.println();
+            }
+            csvPrinter.close();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            new BusinessesException("Error on CSV Generation", e);
+        } finally {
+            IOUtils.closeQuietly(baos);
+        }
+        return null;
+    }
+
+    // RQ 06-2019
+    public G12Data getG12LineChartData(G12Data g12Data){
+        
+        g12Data.setStartDate(DateUtil.fixStartDate(g12Data.getStartDate()));
+        
+        this.buildG12Json(g12Data);
+        
+        return g12Data;
+    }
+
+    public String getG12DataCSV(List<Object> dataList) {
+        //recupero i dati
+        try {
+            return createCSVFromC3Columns(dataList);
+        } catch (IOException e) {
+            new BusinessesException("Error on CSV Generation", e);
+        }
+        return null;
+    }
 }

@@ -19,6 +19,9 @@ public class DVariables extends MVariables {
     /*Gc 16/11/2015*/
     private boolean energy;
     private boolean losses;
+
+    /*RQ 03-2019*/
+    private boolean rateReal;
     
     public boolean isRealLeakage() {
         return realLeakage;
@@ -70,4 +73,12 @@ public class DVariables extends MVariables {
 	public void setLosses(boolean losses) {
 		this.losses = losses;
 	}
+
+    public boolean isRateReal() {
+        return rateReal;
+    }
+
+    public void setRateReal(boolean rateReal) {
+        this.rateReal = rateReal;
+    }
 }

@@ -58,8 +58,9 @@ public class G7Data {
     @XmlAttribute(required = false)
     private List<Object> checkboxList;
     
-    
-    
+    /* RQ 05-2019 */
+    @XmlAttribute(required = false)
+    private List<Object> events;
     
     public List<Object> getCheckboxList() {
 		return checkboxList;
@@ -89,6 +90,9 @@ public class G7Data {
         
         /* GC 27/11/2015 */
         checkboxList = new ArrayList<Object>();
+
+        /*RQ 05-2019 */
+        events = new ArrayList<Object>();
     }
 
     public List<Object> getColumns() {
@@ -230,5 +234,13 @@ public class G7Data {
 			this.descriptionConfiguration = descriptionConfiguration;
 		}
 		//***END***
+
+    public List<Object> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<Object> events) {
+        this.events = events;
+    }
 
 }

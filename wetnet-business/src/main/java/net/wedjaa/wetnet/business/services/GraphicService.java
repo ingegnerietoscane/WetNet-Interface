@@ -3,6 +3,8 @@ package net.wedjaa.wetnet.business.services;
 import java.util.List;
 
 import net.wedjaa.wetnet.business.domain.DataDistricts;
+import net.wedjaa.wetnet.business.domain.DistrictsLevelInhabitantsData;
+import net.wedjaa.wetnet.business.domain.DistrictsLevelLengthData;
 import net.wedjaa.wetnet.business.domain.G2Data;
 import net.wedjaa.wetnet.business.domain.G3Data;
 import net.wedjaa.wetnet.business.domain.G4Data;
@@ -10,10 +12,9 @@ import net.wedjaa.wetnet.business.domain.G5Data;
 import net.wedjaa.wetnet.business.domain.G6Data;
 import net.wedjaa.wetnet.business.domain.G7Data;
 import net.wedjaa.wetnet.business.domain.G8Data;
+import net.wedjaa.wetnet.business.domain.G12Data;
 import net.wedjaa.wetnet.business.domain.Users;
 import net.wedjaa.wetnet.business.domain.UsersCFGSParent;
-
-import javax.xml.crypto.Data;
 
 /**
  * @author massimo ricci
@@ -37,6 +38,9 @@ public interface GraphicService {
     public G3Data getDataG3_2(G3Data g3Data);
 
     public G2Data getG2Data(G2Data g2Data);
+
+    // RQ 07-2019
+    public G2Data getG2DataCompare(G2Data g2Data);
 
     public String getG2DataCSV(G2Data g2Data);
 
@@ -81,4 +85,17 @@ public interface GraphicService {
     //***END***
 
     public List<DataDistricts> getG9RealValues(Long districtId, String dateString);
+
+    List<DistrictsLevelLengthData> getG10Data();
+
+    byte[] getG10DataCSV();
+
+    List<DistrictsLevelInhabitantsData> getG11Data();
+
+    byte[] getG11DataCSV();
+
+    // RQ 06-2019
+    public G12Data getG12LineChartData(G12Data g12Data);
+    public boolean saveG12Configuration(G12Data g12Data, int idUser);
+    public String getG12DataCSV(List<Object> dataList);
 }

@@ -6,9 +6,10 @@ import java.util.logging.Logger;
 
 import net.wedjaa.wetnet.business.BusinessesException;
 import net.wedjaa.wetnet.business.dao.params.DataDistrictsFilter;
-import net.wedjaa.wetnet.business.domain.DataDistricts;
 import net.wedjaa.wetnet.business.domain.Districts;
 import net.wedjaa.wetnet.business.domain.DistrictsBandsHistory;
+import net.wedjaa.wetnet.business.domain.DistrictsLevelInhabitantsData;
+import net.wedjaa.wetnet.business.domain.DistrictsLevelLengthData;
 import net.wedjaa.wetnet.business.domain.MeasuresHasDistricts;
 import net.wedjaa.wetnet.business.domain.Users;
 
@@ -266,4 +267,24 @@ public class DistrictsDAOImpl implements DistrictsDAO {
 	            throw new BusinessesException(e);
 	        }
 	}
+
+    /* RQ 04-2019 */
+    @Override
+    public List<DistrictsLevelLengthData> getDistrictsLengthMainByMapLevel() {
+        try {
+            return sqlSessionTemplate.selectList("districts.getDistrictsLengthMainByMapLevel");
+        } catch (Exception e) {
+            throw new BusinessesException(e);
+        }
+    }
+
+    @Override
+    public List<DistrictsLevelInhabitantsData> getDistrictsInhabitantsByMapLevel() {
+        try {
+            return sqlSessionTemplate.selectList("districts.getDistrictsInhabitantsByMapLevel");
+        } catch (Exception e) {
+            throw new BusinessesException(e);
+        }
+    }
+
 }

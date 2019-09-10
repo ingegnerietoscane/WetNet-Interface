@@ -118,8 +118,8 @@
         avg(d.not_household_night_use) as not_household_night_use,d.id_districts,d.name AS districts_name
         FROM districts_day_statistic AS s
         INNER JOIN districts AS d ON (s.districts_id_districts = d.id_districts)
-        INNER JOIN districts_energy_day_statistic AS e ON (s.districts_id_districts = e.districts_id_districts AND DATE_FORMAT(s.day, '%Y-%m') = DATE_FORMAT(e.day, '%Y-%m'))
-        INNER JOIN districts_month_statistic AS m ON (s.districts_id_districts = m.districts_id_districts AND DATE_FORMAT(s.day, '%Y-%m') = DATE_FORMAT(m.month, '%Y-%m'))
+        INNER JOIN districts_energy_day_statistic AS e ON (s.districts_id_districts = e.districts_id_districts AND s.day = e.day)
+        INNER JOIN districts_month_statistic AS m ON (s.districts_id_districts = m.districts_id_districts AND MONTH(s.day) = MONTH(m.month) AND YEAR(s.day) = YEAR(m.month))
         WHERE date(s.day) &gt;= #{startdate} AND date(s.day) &lt;= #{enddate} AND s.districts_id_districts = #{idDistrict}
 		group by districts_name, DATE_FORMAT(s.day, '%Y-%m') order by districts_name, s.day;
 	 </select>
