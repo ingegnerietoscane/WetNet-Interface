@@ -91,8 +91,6 @@
 					<div class="checkbox"><label><input name="<spring:message code="statistic-g7.form.ied" />" type="checkbox" ng-model="g7Data.dVariables.ied"> <spring:message code="statistic-g7.form.ied" /></label></div>
 					<div class="checkbox"><label><input name="<spring:message code="statistic-g7.form.epd" />" type="checkbox" ng-model="g7Data.dVariables.epd"> <spring:message code="statistic-g7.form.epd" /></label></div>
 					<div class="checkbox"><label><input name="<spring:message code="statistic-g7.form.iela" />" type="checkbox" ng-model="g7Data.dVariables.iela"> <spring:message code="statistic-g7.form.iela" /></label></div>
-					<!-- RQ 03-2019-->
-					<div class="checkbox"><label><input name="<spring:message code="statistic-g7.form.rateReal" />" type="checkbox" ng-model="g7Data.dVariables.rateReal"> <spring:message code="statistic-g7.form.rateReal" /></label></div>
 				</form>
 	   		</div>
 			<div class="col-md-6">

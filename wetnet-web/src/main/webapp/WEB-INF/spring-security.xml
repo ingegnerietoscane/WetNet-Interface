@@ -34,7 +34,7 @@
         
         <!-- 
         Per abilitare HTTPS - aggiungere configurazione in tomcat porta 8443 e requires-channel="https"	-->
-        <intercept-url pattern="/wetnet/welcome" requires-channel="https" access="hasAnyRole({'ROLE_USER', 'ROLE_OPERATOR', 'ROLE_SUPERVISOR','ROLE_ADMINISTRATOR','ROLE_METER_READER'})" />
+        <intercept-url pattern="/wetnet/welcome" requires-channel="http" access="hasAnyRole({'ROLE_USER', 'ROLE_OPERATOR', 'ROLE_SUPERVISOR','ROLE_ADMINISTRATOR','ROLE_METER_READER'})" />
 		
 		 
 <!--  		<intercept-url pattern="/wetnet/welcome" access="hasAnyRole({'ROLE_USER', 'ROLE_OPERATOR', 'ROLE_SUPERVISOR','ROLE_ADMINISTRATOR','ROLE_METER_READER'})" />  -->

@@ -24,7 +24,6 @@ import org.json.XML;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.awt.*;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -42,7 +40,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.List;
 
 /**
  * Provides some REST services used my D3 services
@@ -220,20 +217,7 @@ public class D3Controller {
     public G2Data getG2(HttpServletResponse response, @RequestBody G2Data g2Data) {
         g2Data = graphicService.getG2Data(g2Data);
         return g2Data;
-    }
-
-    /**
-     * RQ 07-2019
-     *
-     * @param response
-     * @return
-     */
-    //@Secured()
-    @RequestMapping(value = "/g2Compare",  method = { RequestMethod.POST, RequestMethod.GET } )
-    public G2Data getG2ToCompare(HttpServletResponse response, @RequestBody G2Data g2Data) {
-        g2Data = graphicService.getG2DataCompare(g2Data);
-        return g2Data;
-    }
+    }    
     
     //***RC 01/12/2015*** 
     /**
@@ -883,99 +867,14 @@ public class D3Controller {
             if (inputStream != null)
                 inputStream.close();
         } catch (MalformedURLException e) {
+            e.printStackTrace();
             log.info("INFO: Property 'exeternal_service.prevision.url' is not found or its value is not an URL.");
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             if (connection != null)
                 connection.disconnect();
             return result.toString();
         }
-    }
-
-    @RequestMapping(value = "/g10",  method = RequestMethod.GET)
-    @ResponseBody
-    public List<DistrictsLevelLengthData> getG10Data() {
-        return graphicService.getG10Data();
-    }
-
-    @RequestMapping(value = "/g10/csv",  method = RequestMethod.GET)
-    @ResponseBody
-    public byte[] getG10DataCSV(HttpServletResponse response) {
-        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        response.setHeader("Content-Disposition", "attachment; filename=WETNET_chart_10.csv");
-        return graphicService.getG10DataCSV();
-    }
-
-    @RequestMapping(value = "/g11",  method = RequestMethod.GET)
-    @ResponseBody
-    public List<DistrictsLevelInhabitantsData> getG11Data() {
-        return graphicService.getG11Data();
-    }
-
-    @RequestMapping(value = "/g11/csv",  method = RequestMethod.GET)
-    @ResponseBody
-    public byte[] getG11DataCSV(HttpServletResponse response) {
-        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        response.setHeader("Content-Disposition", "attachment; filename=WETNET_chart_11.csv");
-        return graphicService.getG11DataCSV();
-    }
-
-    // RQ 06-2019
-    @RequestMapping(value = "/g12", method = { RequestMethod.POST })
-    public G12Data getG12LineChart(HttpServletRequest request, @RequestBody G12Data g12Data) {
-        G12Data result = graphicService.getG12LineChartData(g12Data);
-        return result;
-    }
-
-    @RequestMapping(value = "/g12/sconf", method = { RequestMethod.POST} )
-    public String saveG12Configuration(Authentication authentication, HttpServletRequest request, @RequestBody G12Data g12Data) {
-        
-    	UserDetailsImpl details =  ((UserDetailsImpl) authentication.getPrincipal());
-    	
-    	boolean result = graphicService.saveG12Configuration(g12Data, (int) details.getIdusers());
-    	String str = ""+result;
-    	
-        return str;
-    }
-    
-    @RequestMapping(value = "/g12/sconf", method = { RequestMethod.GET})
-    public List<Object> getAllConfigurationsG12(Authentication authentication, HttpServletResponse response) {
-        //se withSign == true effettua una query diversa
-        UserDetailsImpl details =  ((UserDetailsImpl) authentication.getPrincipal());
-        
-        UsersCFGSParent tmp = new UsersCFGSParent();
-        tmp.setUsers_idusers(details.getIdusers());
-        tmp.setMenu_function(1);//GRAFICI
-        tmp.setSubmenu_function(7);//G7
-        
-        List<Object> result =  graphicService.readAllConfigurations(tmp);
-        
-        return result;
-    }   
-    
-    @RequestMapping(value = "/g12/pconf", method = { RequestMethod.GET})
-    public List<Object> getAllConfigurationParamsG12(Authentication authentication, HttpServletResponse response) {
-        //se withSign == true effettua una query diversa
-        UserDetailsImpl details =  ((UserDetailsImpl) authentication.getPrincipal());
-        
-        List<Object> result =  graphicService.readAllConfigurationParams(details.getIdusers());
-
-        return result;
-    }   
-    
-    @RequestMapping(value="/g12/sconf", method = { RequestMethod.DELETE})
-    @ResponseBody
-    public boolean deleteConfigurationG12(HttpServletResponse response, @RequestParam("parent") String parentDate) {
-    	
-    	boolean result = graphicService.removeConfiguration(parentDate);
-        return result;
-    }
-
-    @RequestMapping(value = "/g12/csv",  method = { RequestMethod.POST, RequestMethod.GET } )
-    @ResponseBody
-    public String getG12CSV(HttpServletResponse response, @RequestBody List<Object> dataList) {
-        String csv = graphicService.getG12DataCSV(dataList);
-        response.setContentType("text/plain");
-        response.setCharacterEncoding("UTF-8");
-        return csv;
     }
 }

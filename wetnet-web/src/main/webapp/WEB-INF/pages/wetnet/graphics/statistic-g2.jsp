@@ -42,16 +42,10 @@
 	              </span>
 	            </p>
 	        </div>
-			
-			<div class="col-md-3">
+
+			<div class="col-md-4">
 		    	<jsp:include page="../../common/datetime-selector.jsp" />
-			</div>
-			<!-- RQ 07-2019-->
-			<div class="col-md-1">
-				<div class="form-group">
-					<button id="compare" name="compare" ng-click="compare()" class="btn btn-primary" ><spring:message code="g2.form.button.compare" /></button>
-				</div>
-			</div>
+	    	</div>
    		</div>
    		<div class="row">
 			<div class="col-md-6">

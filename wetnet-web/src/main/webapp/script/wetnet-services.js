@@ -48,14 +48,6 @@ wetnetService.factory('G2', ['$resource',
                                         });
                                     }]);
 
-//RQ 07-2019
-wetnetService.factory('G2COMPARE', ['$resource',
-                                    function ($resource) {
-                                        return $resource('/wetnet/rest/d3/g2Compare', {}, {
-                                       	 getData: { method: 'POST'}
-                                        });
-                                    }]);
-
 //***RC 02/12/2015***
 wetnetService.factory('G2CONF', ['$resource',
                                 function ($resource) {
@@ -199,7 +191,6 @@ wetnetService.factory('WaterAuthority', ['$resource',
                                        }]);
 //***END***
 
-//***RQ 01-2019***
 wetnetService.factory('TimeSelectorRadio', [function () {
 									return function(radioModel, endDate) {
 											var oneDayMillis = 1000*60*60*24;
@@ -215,20 +206,6 @@ wetnetService.factory('TimeSelectorRadio', [function () {
 												return endDate - 183*oneDayMillis;
 											} else if (radioModel === '1y'){
 												return endDate - 365*oneDayMillis;
-											} else if (radioModel === '2y'){
-												return endDate - 730*oneDayMillis;
-											} else if (radioModel === '3y'){
-                                             	return endDate - 1095*oneDayMillis;
-                                            } else if (radioModel === '4y'){
-												return endDate - 1460*oneDayMillis;
-											} else if (radioModel === '5y'){
-                                            	return endDate - 1825*oneDayMillis;
-                                            } else if (radioModel === '6y'){
-												return endDate - 2190*oneDayMillis;
-											}else if (radioModel === '8y'){
-												return endDate - 2920*oneDayMillis;
-											}else if (radioModel === '10y'){
-												return endDate - 3650*oneDayMillis;
 											}
 									    };
                                  }]);
@@ -430,41 +407,3 @@ wetnetService.factory('WmsServices1', ['$resource',
                                        	 getData: { method: 'GET', isArray: true }
                                         });
                                     }]);
-
-wetnetService.factory('G10', ['$resource',
-                      function ($resource) {
-                          return $resource('/wetnet/rest/d3/g10', {}, {
-                           getData: { method: 'GET', isArray: true}
-                          });
-                      }]);
-
-wetnetService.factory('G11', ['$resource',
-                      function ($resource) {
-                          return $resource('/wetnet/rest/d3/g11', {}, {
-                           getData: { method: 'GET', isArray: true}
-                          });
-                      }]);
-
-// RQ 05-2019
-wetnetService.factory('G12', ['$resource',
-                      function ($resource) {
-                          return $resource('/wetnet/rest/d3/g12', {}, {
-                              getData: { method: 'POST'}
-                          });
-                      }]);
-
-wetnetService.factory('G12CONF', ['$resource',
-                                 function ($resource) {
-                                     return $resource('/wetnet/rest/d3/g12/sconf', {}, {
-                                     	saveG12Configuration: { method: 'POST'},
-                                     	getData: { method: 'GET', isArray: true },
-                                     	remove: { method: 'DELETE', params: {parent: '@parent'}}
-                                     });
-                                 }]);
-
- wetnetService.factory('G12CONFPARAM', ['$resource',
-                                  function ($resource) {
-                                      return $resource('/wetnet/rest/d3/g12/pconf', {}, {
-                                      	getData: { method: 'GET', isArray: true }
-                                      });
-                                  }]);

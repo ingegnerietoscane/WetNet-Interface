@@ -9,9 +9,6 @@
 	<link href="<c:url value="/css/c3.css" />" type="text/css" rel="stylesheet"/>
 	<link href="<c:url value="/css/wetnet.css" />" type="text/css" rel="stylesheet"/>
 	<link href="<c:url value="/css/fonts.css" />" type="text/css" rel="stylesheet"/>
-
-	<!-- RQ 04-2019-->
-	<link href="<c:url value="/css/box-plot-d3.css" />" type="text/css" rel="stylesheet"/>
 	
 	<!-- ***RC 30/112015*** -->
 <!-- 	<script src="http://crypto-js.googlecode.com/svn/tags/3.0.2/build/rollups/md5.js"></script> -->
@@ -42,8 +39,8 @@
  	<script type="text/javascript" src="${pageContext.request.contextPath}/script/lib/angular-resource.min.js"></script>
  	<script type="text/javascript" src="${pageContext.request.contextPath}/script/lib/angular-sanitize.min.js"></script>
  	<script type="text/javascript" src="${pageContext.request.contextPath}/script/lib/d3.min.js" charset="utf-8"></script>
-	<script type="text/javascript" src="${pageContext.request.contextPath}/script/lib/c3.js"></script>
-	 
+ 	<script type="text/javascript" src="${pageContext.request.contextPath}/script/lib/c3.js"></script>
+ 	
 	<script type="text/javascript" src="${pageContext.request.contextPath}/script/wetnet-app.js"></script>
 	<script type="text/javascript" src="${pageContext.request.contextPath}/script/wetnet-controllers.js"></script>
 	<script type="text/javascript" src="${pageContext.request.contextPath}/script/wetnet-manager-controllers.js"></script>
@@ -74,7 +71,5 @@
 
 	<!-- Include date utils -->
 	<script type="text/javascript" src="${pageContext.request.contextPath}/script/wetnet-date-utils.js"></script>
-
-	<!-- RQ 04-2019-->	
-	<script type="text/javascript" src="${pageContext.request.contextPath}/script/box-plot-d3.js"></script>
+	
 	

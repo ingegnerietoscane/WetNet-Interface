@@ -24,8 +24,8 @@ wetnetControllers.controller("WetnetControllerG1", ['$scope', '$http', 'District
 	}
 }]);
 
-wetnetControllers.controller("WetnetControllerG2", ['$scope', '$http', '$filter', 'Districts', 'Measures', 'G2','G2COMPARE', 'G2CONF', 'G2CONFPARAM', 'TimeSelectorRadio', 'RoundNumber', 'GetUrlParameter','$log',
-                                                    				function($scope, $http, $filter, Districts, Measures, G2,G2COMPARE, G2CONF, G2CONFPARAM, TimeSelectorRadio, RoundNumber, GetUrlParameter,$log) {
+wetnetControllers.controller("WetnetControllerG2", ['$scope', '$http', '$filter', 'Districts', 'Measures', 'G2', 'G2CONF', 'G2CONFPARAM', 'TimeSelectorRadio', 'RoundNumber', 'GetUrlParameter','$log',
+                                                    				function($scope, $http, $filter, Districts, Measures, G2, G2CONF, G2CONFPARAM, TimeSelectorRadio, RoundNumber, GetUrlParameter,$log) {
 	
 	
 	//***RC 03/12/2015***
@@ -289,9 +289,9 @@ wetnetControllers.controller("WetnetControllerG2", ['$scope', '$http', '$filter'
 	
     // callback for ng-click 'loadData':
 	$scope.loadData = function () {
-		$('#modalLoading').modal('show');
 		if($scope.g2Data.startDate != undefined && $scope.g2Data.endDate != undefined && $scope.g2Data.districtsSelected != undefined){
 			G2.getData($scope.g2Data, function (data) {
+				
 				//***RC 21/10/2015***
 				
 				$scope.flagEnergyLosses = true;
@@ -345,15 +345,13 @@ wetnetControllers.controller("WetnetControllerG2", ['$scope', '$http', '$filter'
 				rows = rowsTemp;
 			
 				$scope.columns = rows;
-				var countNullValues = {};
+				
 				var chart = c3.generate({
 				    data:{
 				    	x: 'x',
 				        xFormat: '%Y-%m-%d %I:%M:%S', // 'xFormat' can be used as custom format of 'x'
 				        columns: rows,
 				    	onclick: function(d, element) {
-							//RQ 08c-2019
-							reCalculateMedie(this,d,countNullValues, $scope.g2Data);
 				    		removeValueFromChart(this, d);
 				    	}
 				    },
@@ -362,12 +360,10 @@ wetnetControllers.controller("WetnetControllerG2", ['$scope', '$http', '$filter'
 			    	},
 				    zoom: {
 				        enabled: true,
-				        rescale: true,
-				        onzoomend: function () { $scope.g2Data.medie = average(this.internal); }
+				        rescale: true
 				    },
 				    subchart: {
-				    	  show: true,
-				    	  onbrush: function () { $scope.g2Data.medie = average(this.internal); }
+				    	  show: true
 				    	},
 				    axis: {
 				        x: {
@@ -476,201 +472,11 @@ wetnetControllers.controller("WetnetControllerG2", ['$scope', '$http', '$filter'
 
 				assignYAxisToData(chart, data); // RF
 				setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-				$('#modalLoading').modal('hide');
-		    });	
-		}
-	}    // callback for ng-click 'loadData':
 
-
-	// RQ 07-2019
-	$scope.compare = function () {
-		$('#modalLoading').modal('show');
-		if($scope.g2Data.startDate != undefined && $scope.g2Data.endDate != undefined && $scope.g2Data.districtsSelected != undefined){
-			G2COMPARE.getData($scope.g2Data, function (data) {
-				//***RC 21/10/2015***
-				$scope.flagEnergyLosses = true;
-				
-				//***END***
-				
-				/*GC 02/11/2015*/
-				$scope.g2Data.medie = data.medie;
-				
-				$scope.g2Data.columns = data.columns;
-				$scope.g2Data.districtsSelected = data.districtsSelected;
-				$scope.g2Data.measuresSelected = data.measuresSelected;
-				//console.log('G2 test: %O', $scope.g2Data.measuresSelected);
-
-				var rows = angular.fromJson(data.columns);
-				var maxData = data.columns[0][data.columns[0].length - 1 ]
-				
-				//GC -- modifica per nascondere energy e losses
-				var rowsTemp = new Array();
-				rowsTemp[0] = rows[0];
-				
-				var j = 1;
-				
-					for(var i = 1; i < rows.length; i++)
-					{
-					var temp = rows[i][0];
-					
-						if(temp.indexOf("energy [Kw]") > -1)
-						{
-							if($scope.showEnergy)
-								{
-							     rowsTemp[j] = rows[i];
-							     j++;
-							    }
-							  continue;
-						}
-					
-						if(temp.indexOf("losses [l/s]") > -1)
-						{
-								if($scope.showLosses)
-								{
-								rowsTemp[j] = rows[i];
-								j++;
-								}
-								continue;
-						}
-					    
-						rowsTemp[j] = rows[i];
-						j++;
-					}
-				rows = rowsTemp;
-			
-				$scope.columns = rows;
-				
-				var chart = c3.generate({
-				    data:{
-				    	x: 'x',
-				        xFormat: '%Y-%m-%d %H:%M:%S', // 'xFormat' can be used as custom format of 'x'
-				        columns: rows,
-				    	onclick: function(d, element) {
-				    		removeValueFromChart(this, d);
-				    	}
-				    },
-				    line: {
-			    		connectNull: true,
-			    	},
-				    zoom: {
-				        enabled: true,
-				        rescale: true
-				    },
-				    subchart: {
-				    	  show: true
-				    	},
-				    axis: {
-				        x: {
-				            type: 'timeseries',
-				            tick: {
-				            	fit: false,
-				            	rotate: 15,
-				                format: '%H:%M'
-				            },
-				            height: 70
-				        },
-				        y: {
-				        	tick: {
-				        		format: function (x) { return RoundNumber(x); }
-				            }
-				        },
-				        y2: {
-				        	show: true,
-				        	tick: {
-				        		format: function (x) { return RoundNumber(x); }
-				            }
-				        }
-
-				    },
-				    point: { show: false },
-				    legend: {
-				        show: true
-				    },
-				    tooltip: {
-				    	/*format: {
-				    		value: function (x) { return RoundNumber(x); }
-				    	}*/
-				    	/* GC 02/11/2015 */
-				    	contents: function tooltip_contents(d, defaultTitleFormat, defaultValueFormat, color) {
-						    var $$ = this, config = $$.config, CLASS = $$.CLASS,
-					        titleFormat = config.tooltip_format_title || defaultTitleFormat,
-					        nameFormat = config.tooltip_format_name || function (name) { return name; },
-					        valueFormat = config.tooltip_format_value || defaultValueFormat,
-					        text, i, title, value, name, bgcolor;
-					        
-					       var dateFormat = d3.time.format('%H:%M');
-					       
-					    for (i = 0; i < d.length; i++) {
-					    	
-					        
-					        if (i==0) {
-					            title = dateFormat(d[i].x);
-					            text = "<table class='" + CLASS.tooltip + "'>" + (title || title === 0 ? "<tr><th colspan='3'>" + title + "</th></tr>" : "");
-					            text += "<tr>";
-						        text += "<td></td>";
-						        text += "<td>value</td>";
-						        text += "<td>media</td>";
-						        text += "</tr>";
-					        }
-					        
-					        name = nameFormat(d[i].name);
-					        bgcolor = $$.levelColor ? $$.levelColor(d[i].value) : color(d[i].id);
-					        
-					        var media = "0";
-					        
-					        for(var z = 0; z < $scope.g2Data.medie.length; z++)
-				        	{
-				        	var s = $scope.g2Data.medie[z];
-				        	
-					        	for(var key in s)
-					            {
-					        		if(key == d[i].name)
-					        			{
-					        			media = s[key];
-					        			break;
-					        			}
-					            }
-				        	}
-					        
-					        text += "<tr class='" + CLASS.tooltipName + "-" + d[i].id + "'>";
-					        text += "<td class='name'><span style='background-color:" + bgcolor + "'></span>" + d[i].name + "</td>";
-					        text += "<td>" + RoundNumber(d[i].value) + "</td>";
-					        /*07/02/2017 nascondi medie per bande*/
-					        if(media=='n.d.')
-					        	{
-					        	text += "<td></td>";
-					        	}
-					        else
-					        	{
-					        text += "<td>" + RoundNumber(media) + "</td>";
-					        	}
-					        text += "</tr>";
-					      
-					    }
-					    return text + "</table>";   
-					}
-				    },
-				    grid: {
-				        x: {
-				            show: true
-				        }
-				    },
-				    size: { 
-				    	height: 520
-			    	},
-					padding: {
-						left: 50,
-						right: 100
-					}
-				});
-
-				assignYAxisToData(chart, data); // RF
-				setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-				$('#modalLoading').modal('hide');
 		    });	
 		}
 	}
-
+	
 	// callback for ng-click 'exportCSV':
 	$scope.exportCSV = function () {
 		$http({method: 'POST', url: '/wetnet/rest/d3/g2/csv', data: $scope.g2Data}).
@@ -757,7 +563,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 	
     // callback for ng-click 'loadData':
     $scope.loadDataG3 = function () {
-		$('#modalLoading').modal('show');
 		$http.post("/wetnet/rest/d3/g3_1/json", $scope.bean).then(function(response){
 			$scope.minNightStartTime = response.data.minNightStartTime;
 			$scope.minNightStopTime = response.data.minNightStopTime;
@@ -769,7 +574,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			$scope.temp.g3_1 = response.data.data;
 			var rows = angular.fromJson(response.data.data);
 			$scope.columns = rows;
-			var countNullValues={};
 			var chart = c3.generate({
 				bindto: '#chart',
 			    data:{
@@ -781,8 +585,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			        	MinNightPressure: 'y2'
 			        },
 			    	onclick: function(d, element) {
-						//RQ 08c-2019
-						reCalculateMedie(this,d,countNullValues, response.data);
 			    		removeValueFromChart(this, d);
 			    	}
 			    },
@@ -791,12 +593,10 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			    },
 			    zoom: {
 			        enabled: true,
-			        rescale: true,
-			        onzoomend: function () { $scope.medie_g3_1 = average(this.internal); }
+			        rescale: true
 			    },
 			    subchart: {
-			    	  show: true,
-			    	  onbrush: function () { $scope.medie_g3_1 = average(this.internal); }
+			    	  show: true
 			    	},
 			    axis: {
 			        x: {
@@ -896,8 +696,7 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 					right: 100
 				}
 			});
-			setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF	
-			$('#modalLoading').modal('hide');     
+			setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF	     
 		});
 		
 		$http.post("/wetnet/rest/d3/g3_2/json", $scope.bean).then(function(response){
@@ -909,7 +708,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			
 			var rows = angular.fromJson(response.data.data);
 			$scope.columns = rows;
-			var countNullValues = {};
 			var chart = c3.generate({
 				bindto: '#chart2',
 			    data:{
@@ -921,8 +719,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			        	MnfPressure: 'y2'
 			        },
 			    	onclick: function(d, element) {
-						//RQ 08c-2019
-						reCalculateMedie(this,d,countNullValues, response.data);
 			    		removeValueFromChart(this, d);
 			    	}
 			    },
@@ -1052,7 +848,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			$scope.temp.g3_3 = response.data.data;
 			var rows = angular.fromJson(response.data.data);
 			$scope.columns = rows;
-			var countNullValues={};
 			var chart = c3.generate({
 				bindto: '#chart3',
 			    data:{
@@ -1065,8 +860,6 @@ wetnetControllers.controller("WetnetControllerG3", ['$scope', '$http', 'DataDist
 			        	RettaMinimiQuadrati: 'line'
 			        },
 			    	onclick: function(d, element) {
-						//RQ 08c-2019
-						reCalculateMedie(this,d,countNullValues, response.data);
 			    		removeValueFromChart(this, d);
 			    	}
 			    },
@@ -1246,15 +1039,13 @@ wetnetControllers.controller("WetnetControllerG4", ['$scope', '$http', 'District
   	
   	// callback for ng-click 'loadChartData':
   	$scope.loadChartData = function() {
-		$('#modalLoading').modal('show');
   		if ($scope.formBean.startDate != undefined && $scope.formBean.endDate != undefined
   				&& ($scope.formBean.itemFlagged != undefined || $scope.formBean.districtsSelected != undefined
   						|| $scope.formBean.zoneSelected != undefined || $scope.formBean.municipalitySelected != undefined)) {
   			G4BarChart.getData($scope.formBean, function(data) {
   				$scope.columns = data.columns;
   				var rows = angular.fromJson(data.columns);
-				$scope.columnsSize = rows[0].length - 1;
-				var countNullValues={};
+  				$scope.columnsSize = rows[0].length - 1;
   				if ($scope.columnsSize > 0) {
   					var chart = c3.generate({
   		    			bindto : '#g4-chart',
@@ -1268,8 +1059,6 @@ wetnetControllers.controller("WetnetControllerG4", ['$scope', '$http', 'District
   					        	IED: 'y2'
 	  				        },
 					    	onclick: function(d, element) {
-								//RQ 08c-2019
-								reCalculateMedie(this,d,countNullValues, data);
 					    		removeValueFromChart(this, d);
 					    	}
   					    },
@@ -1330,8 +1119,7 @@ wetnetControllers.controller("WetnetControllerG4", ['$scope', '$http', 'District
   							right: 100
 						}
   					});
-					  setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-					  $('#modalLoading').modal('hide');
+  					setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
   				}
   			});
   		}
@@ -1419,13 +1207,12 @@ wetnetControllers.controller("WetnetControllerG5", ['$scope', '$http', 'District
   	
   	// callback for ng-click 'loadChartData':
   	$scope.loadChartData = function() {
-		$('#modalLoading').modal('show');
   		if ($scope.formBean.startDate != undefined && $scope.formBean.endDate != undefined
   				&& ($scope.formBean.districtsSelected != undefined || $scope.formBean.zoneSelected != undefined || $scope.formBean.municipalitySelected != undefined)) {
   			G5PieChart.getData($scope.formBean, function(data) {
   				$scope.columns = data.columns;
   				var rows = angular.fromJson(data.columns);
-				  $scope.columnsSize = rows.length;
+  				$scope.columnsSize = rows.length;
   				if ($scope.columnsSize > 0) {
   					var chart = c3.generate({
   						bindto : '#g5-chart',
@@ -1467,8 +1254,7 @@ wetnetControllers.controller("WetnetControllerG5", ['$scope', '$http', 'District
 							pattern: ['#ff7f0e','#1f77b4']
 						}
   					});
-					  setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-					  $('#modalLoading').modal('hide');
+  					setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
   				}
   			});
   		}
@@ -1627,7 +1413,6 @@ wetnetControllers.controller("WetnetControllerG6", ['$scope', '$http', 'District
   	
   	// callback for ng-click 'loadChartData':
   	$scope.loadChartData = function() {
-		$('#modalLoading').modal('show');
   		if ($scope.formBean.startDate != undefined && $scope.formBean.endDate != undefined
   				&& ($scope.formBean.districtsSelected != undefined || $scope.formBean.zoneSelected != undefined || $scope.formBean.municipalitySelected != undefined)) {
   			G6LineChart.getData($scope.formBean, function(data) {
@@ -1697,8 +1482,7 @@ wetnetControllers.controller("WetnetControllerG6", ['$scope', '$http', 'District
   							right: 100
 						}
   					});
-					  setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-					  $('#modalLoading').modal('hide');
+  					setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
   				}
   			});
   		}
@@ -2362,21 +2146,16 @@ wetnetControllers.controller("WetnetControllerG7", ['$scope', '$http', '$filter'
 
 	// callback for ng-click 'loadData':
 	$scope.loadData = function() {
-		$('#modalLoading').modal('show');
 		if ($scope.g7Data.startDate != undefined && $scope.g7Data.endDate != undefined
 				&& ($scope.g7Data.districtsSelected != undefined || $scope.g7Data.measuresSelected != undefined)) {
 			G7.getData($scope.g7Data, function(data) {
+				
 				/*GC 02/11/2015*/
 				$scope.g7Data.medie = data.medie;
 				$scope.g7Data.columns = data.columns;
 				$scope.columns = data.columns;
-
-				/*RQ 05-2019 */
-				$scope.g7Data.events = data.events;
-
 				var rows = angular.fromJson(data.columns);
 				var maxData = data.columns[0][data.columns[0].length - 1];
-				var countNullValues = {};
 				var chart = c3.generate({
 					bindto : '#g7-chart',
 					data : {
@@ -2384,12 +2163,7 @@ wetnetControllers.controller("WetnetControllerG7", ['$scope', '$http', '$filter'
 						xFormat : '%Y-%m-%d %I:%M:%S', // 'xFormat' can be used as custom format of 'x'
 						columns : rows,
 						onclick: function(d, element) {
-							//RQ 08c-2019
-							reCalculateMedie(this,d,countNullValues, $scope.g7Data);
-							removeValueFromChart(this, d);							
-						},
-						selection: {
-							enabled: true
+							removeValueFromChart(this, d);
 						}
 					},
 					line: {
@@ -2397,12 +2171,10 @@ wetnetControllers.controller("WetnetControllerG7", ['$scope', '$http', '$filter'
 			    	},
 					zoom: {
   				        enabled: true,
-  				        rescale: true,
-  				        onzoomend: function () { $scope.g7Data.medie = average(this.internal); }
+  				        rescale: true
   				    },
   				    subchart: {
-  				    	  show: true,
-  				    	  onbrush: function () { $scope.g7Data.medie = average(this.internal); }
+  				    	  show: true
   				    	},
 					axis : {
 						x : {
@@ -2419,10 +2191,7 @@ wetnetControllers.controller("WetnetControllerG7", ['$scope', '$http', '$filter'
 						}
 					},
 					point : {
-						show : true,
-						select:{
-							r: 4
-						}
+						show : true
 					},
 					legend : {
 						show : true
@@ -2459,14 +2228,16 @@ wetnetControllers.controller("WetnetControllerG7", ['$scope', '$http', '$filter'
 					        bgcolor = $$.levelColor ? $$.levelColor(d[i].value) : color(d[i].id);
 					        
 					        var media = "0";
+					        
 					        for(var z = 0; z < $scope.g7Data.medie.length; z++)
 				        	{
 				        	var s = $scope.g7Data.medie[z];
+				        	
 					        	for(var key in s)
 					            {
 					        		if(key == d[i].name)
 					        			{
-										media = s[key];
+					        			media = s[key];
 					        			break;
 					        			}
 					            }
@@ -2498,21 +2269,12 @@ wetnetControllers.controller("WetnetControllerG7", ['$scope', '$http', '$filter'
 			    		connectNull: true,
 			    	}
 				});
-				
-				addEventPoints(chart,data); //RQ 05-2019
+
 				assignYAxisToData(chart, data); // RF
 				setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-				$('#modalLoading').modal('hide');
 			});
 			
 		}
-	}
-
-	/*RQ 05-2019 */
-	function addEventPoints(chart, data){		
-		data.events.forEach(markedEvents => {
-			chart.select(markedEvents[0],markedEvents[1]);
-		});		
 	}
 
 	// callback for ng-click 'exportCSV':
@@ -3030,7 +2792,6 @@ $scope.closeViewConfiguratorMethod = function(){
 
 // callback for ng-click 'loadData':
 $scope.loadData = function () {
-	$('#modalLoading').modal('show');
 if($scope.g8Data.startDate != undefined && $scope.g8Data.endDate != undefined && $scope.g8Data.districtsSelected != undefined){
 	
 	/*  
@@ -3163,7 +2924,7 @@ else if($scope.selectedTimeBase ==='3')
 	xForm = '%Y';
 	}
 }
-var countNullValues = {};
+
 var chart = c3.generate({
 	bindto : '#g8-chart',
     data:{
@@ -3171,8 +2932,6 @@ var chart = c3.generate({
         xFormat: xForm, // 'xFormat' can be used as custom format of 'x'
         columns: rows,
         onclick: function(d, element) {
-			//RQ 08c-2019
-			reCalculateMedie(this,d,countNullValues, $scope.g8Data);
 			removeValueFromChart(this, d);
 		}
 	},
@@ -3181,12 +2940,10 @@ var chart = c3.generate({
 	},
     zoom: {
 	        enabled: true,
-	        rescale: true,
-	        onzoomend: function () { $scope.g8Data.medie = average(this.internal); }
+	        rescale: true
 	    },
 	    subchart: {
-	    	  show: true,
-	    	  onbrush: function () { $scope.g8Data.medie = average(this.internal); }
+	    	  show: true
 	    	},
     axis: {
         x: {
@@ -3254,10 +3011,10 @@ var chart = c3.generate({
         	
 	        	for(var key in s)
 	            {
-	        		
+	        		//console.log("-------> " + key);
 	        		if(d[i].name.indexOf(key) > -1)
 	        			{
-	        			
+	        			//console.log("TROVATO");
 	        			
 	        			media = s[key];
 	        			nomeRiga = key;
@@ -3300,7 +3057,6 @@ var chart = c3.generate({
 
 assignYAxisToData(chart, data); // RF
 setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
-$('#modalLoading').modal('hide');
 
 });	
 
@@ -3392,7 +3148,6 @@ wetnetControllers.controller("WetnetControllerG9", ['$scope', '$http', '$filter'
 	});
 
     $scope.loadData = function () {
-		$('#modalLoading').modal('show');
     	if (!$scope.selectedDistrict)
     		return;
     	var reqParams = {};
@@ -3408,7 +3163,6 @@ wetnetControllers.controller("WetnetControllerG9", ['$scope', '$http', '$filter'
 					$scope.data[i].RealValue = item.Value;
 				}
 			});
-			var countNullValues={};
 			// console.log('Reformatted json: %O', $scope.data);
 			var chart = c3.generate({
 				bindto: '#g9-chart',
@@ -3432,8 +3186,6 @@ wetnetControllers.controller("WetnetControllerG9", ['$scope', '$http', '$filter'
 			    		HiValue: 'lightgrey'
 			    	},
 			    	onclick: function(d, element) {
-						//RQ 08c-2019
-						reCalculateMedie(this,d,countNullValues, $scope.data);
 			    		removeValueFromChart(this, d);
 			    	}
 			    },
@@ -3484,7 +3236,6 @@ wetnetControllers.controller("WetnetControllerG9", ['$scope', '$http', '$filter'
 			setChartYRange(chart, $scope.minY, $scope.maxY, $scope.minY2, $scope.maxY2); // RF
 			$scope.fillArea(chart, $scope.data);
 			$scope.graphTitle = $scope.selectedDistrict.name + " - " + $filter('date')($scope.date, "dd/MM/y");
-			$('#modalLoading').modal('hide');
 		});
 	}
 
@@ -3576,1151 +3327,6 @@ function removeValueFromChart(chart, d) {
 	chart.flush();
 	
 }
-// RQ 08c-2019
-function  reCalculateMedie(chart, d,countNullValues,data){
-	if (!event.altKey)
-		return;
-		console.log("recalculateMedie data",data)
-	data.medie.forEach((media,index,arr) => {
-		if (media[d.id]){
-			if (!countNullValues[d.id]) {
-				countNullValues[d.id] = 0;
-			}
-			let lengthNoNull = chart.data.values(d.id).length - countNullValues[d.id];
-			let newTotale=(media[d.id] * lengthNoNull)-d.value;
-			countNullValues[d.id]++;
-			var newLength = lengthNoNull-1;
-			let newMedia;
-			if(newLength==0) { 
-				newMedia=0;
-			} else {
-				newMedia = newTotale/newLength;	//Nuovo valore trovato
-			}
-			data.medie[index][d.id] = Math.round(newMedia * 100) / 100; 
-			return;
-		}
-	});
-}
-
-// G10
-wetnetControllers.controller("WetnetControllerG10", ['$scope', '$http', '$filter', 'G10', 
-	function($scope, $http, $filter, G10) {
-		$('#modalLoading').modal('show');
-		$scope.config = {};
-		$scope.config.chartWidth = 2000; 
-
-		$scope.data = null;
-		G10.getData({}, function(response) {
-			$scope.data = response;
-
-			// Aggiungi descrizione per eventVariableType
-			$scope.data.forEach(function(d) {
-				d.eventVariableTypeLabel = MESSAGE_SOURCE['EV_VARIABLE_TYPE_' + d.eventVariableType];
-			});			
-
-			// Bar chart
-			var barChartData = [];
-
-			for (var i = 0; i <= 4; i++) {
-				var a = $scope.data.filter(function(d) {return d.eventVariableType == i;}).map(function(d) {return d.districtsLengthPercetage;});
-				a.unshift(MESSAGE_SOURCE['EV_VARIABLE_TYPE_' + i]);
-				barChartData.push(a);
-			}
-
-			var barChart = c3.generate({
-				bindto: '#barChart',
-				data: {
-					columns: barChartData,
-					type: 'bar'
-				},
-				bar: {
-					width: {
-						ratio: 0.5
-					}
-				},
-				axis: {
-					x: {
-						label: 'Livello'		
-					},
-					y: {
-						label: '%',
-						max: 100,
-						min: 0,
-						padding: {top: 0, bottom: 0}
-					}
-				},
-				grid: {
-					y: {show: true}
-				}
-			});	
-			
-			// Box plot
-			var boxPlotChartData = [], chartCount = 0, boxPlotChartDataExt = [];
-			$scope.data.forEach(function(d, index) {
-				boxPlotChartData.push([d.eventVariableTypeLabel, d.districtsLength.length ? d.districtsLength : [0]]);
-
-				if (index > 0 && (index + 1) % 5 == 0) {
-					// Genera grafico
-					var chartContainer = '#boxPlotChartL' + chartCount++;
-					var boxPlotChart = d3.box().generate({
-						bindto: chartContainer,
-						data: boxPlotChartData,
-						width: window.innerWidth / 2,
-						height: 400
-					});
-
-					boxPlotChartData = []; // svuota array
-				}
-			});
-			
-		});
-		$('#modalLoading').modal('hide');
-	}
-]); // G10 END
-
-// G11
-wetnetControllers.controller("WetnetControllerG11", ['$scope', '$http', '$filter', 'G11', 
-	function($scope, $http, $filter, G11) {
-		$scope.config = {};
-		$scope.config.chartWidth = 2000;                                               					
-		
-		$scope.data = null;
-		$('#modalLoading').modal('show');
-		G11.getData({}, function(response) {
-			$scope.data = response;
-
-			// Aggiungi descrizione per eventVariableType
-			$scope.data.forEach(function(d) {
-				d.eventVariableTypeLabel = MESSAGE_SOURCE['EV_VARIABLE_TYPE_' + d.eventVariableType];
-			});			
-
-			// Bar chart
-			var barChartData = [];
-
-			for (var i = 0; i <= 4; i++) {
-				var a = $scope.data.filter(function(d) {return d.eventVariableType == i;}).map(function(d) {return d.districtsInhabitantsPercetage;});
-				a.unshift(MESSAGE_SOURCE['EV_VARIABLE_TYPE_' + i]);
-				barChartData.push(a);
-			}
-
-			var barChart = c3.generate({
-				bindto: '#barChart',
-				data: {
-					columns: barChartData,
-					type: 'bar'
-				},
-				bar: {
-					width: {
-						ratio: 0.5
-					}
-				},
-				axis: {
-					x: {
-						label: 'Livello'
-					},
-					y: {
-						label: '%',
-						max: 100,
-						min: 0,
-						padding: {top: 0, bottom: 0}
-					}
-				},
-				grid: {
-					y: {show: true}
-				}
-			});	
-			
-			// Box plot
-			var boxPlotChartData = [], chartCount = 0;
-			$scope.data.forEach(function(d, index) {
-				boxPlotChartData.push([d.eventVariableTypeLabel, d.districtsInhabitants.length ? d.districtsInhabitants : [0]]);
-
-				if (index > 0 && (index + 1) % 5 == 0) {
-					// Genera grafico
-					var boxPlotChart = d3.box().generate({
-						bindto: '#boxPlotChartL' + chartCount++,
-						data: boxPlotChartData,
-						width: window.innerWidth / 2,
-						height: 400
-					});
-					boxPlotChartData = []; // svuota array
-				}
-			});
-			
-		});
-		$('#modalLoading').modal('hide');
-	}
-]); // G11 END
-
-wetnetControllers.controller("WetnetControllerG12", ['$scope', '$http', '$filter', 'Districts', 'Measures', 'G12', 'G12CONF', 'G12CONFPARAM', 'TimeSelectorRadio', 'RoundNumber', 'RoundNumberToThird', 'GetUrlParameter','Zone', 'WaterAuthority','$log','MeasuresHasDistricts',
-											function($scope, $http, $filter, Districts, Measures, G12, G12CONF, G12CONFPARAM, TimeSelectorRadio, RoundNumber, RoundNumberToThird, GetUrlParameter, Zone, WaterAuthority,$log,MeasuresHasDistricts) {
-
-	//***RC 03/12/2015***
-	$scope.configList = new Object();
-	$scope.paramList = new Object();
-	G12CONF.getData(function (data) {
-		$scope.configList = data;
-	});
-	G12CONFPARAM.getData(function (data) {
-		$scope.paramList = data;
-	});
-	//***END***
-	
-	//***RC 30/11/2015***
-	$scope.confDialog = false;
-	//***END***
-	
-	$scope.$log = $log;
-
-	/*************************** ZONA E SOCIETA*************************/
-	
-	$scope.zones = Zone.getData();
-	$scope.waterAuthorities = WaterAuthority.getData();
-	$scope.filterValueZ = '';
-	$scope.filterValueW = '';
-	$scope.filteredDistrictsModel = [];
-	$scope.filteredDistrictsData = [];
-	$scope.filteredDistrictsSettings = {enableSearch: true, closeOnBlur: true, showCheckAll: false, showUncheckAll:false, scrollable:true, selectionLimit:1};
-	
-	$scope.filteredMeasuresModel = [];
-	$scope.filteredMeasuresData = [];
-	$scope.filteredMeasuresSettings = {enableSearch: true, closeOnBlur: true, showCheckAll: false, showUncheckAll:false, scrollable:true, selectionLimit:1};
-
-	$scope.districtMeasures = [];
-	
-	/****** GC 14/12/2015*/
-	$scope.filteredMeasuresDataMap = {};
-	/****************************************************/
-	
-	
-	
-	//Config per export PNG
-	$scope.config = new Object();
-	$scope.config.chartWidth = 2000;
-	
-	// carico i distretti utlizzati per la ricerca
-	$scope.measures = Measures.getData(null, function (data) {
-		
-		/******GC 25/11/2015*/
-		$scope.filteredMeasuresData = [];
-		for(var c = 0; c < $scope.measures.length; c++){
-			var comboMeas = {id:$scope.measures[c].idMeasures, label:$scope.measures[c].name};
-			$scope.filteredMeasuresData.push(comboMeas);
-		}
-		/*******************/
-		return data;
-	});
-	
-	
-	$scope.columns = [];
-	
-	// inizializzazioni
-	$scope.g12Data = new Object();
-	$scope.g12Data.districtsSelected = new Array();
-	$scope.g12Data.measuresSelected = new Array();
-	$scope.g12Data.dVariables = new Object();
-	$scope.g12Data.mVariables = new Object();
-
-	$scope.g12Data.dVariables.minNight = false;
-	$scope.g12Data.dVariables.avgDay = true;
-	$scope.g12Data.dVariables.maxDay = false;
-	$scope.g12Data.dVariables.minDay = false;
-
-	$scope.g12Data.mVariables.minNight = false;
-	$scope.g12Data.mVariables.avgDay = true;
-	$scope.g12Data.mVariables.maxDay = false;
-	$scope.g12Data.mVariables.minDay = false;
-	$scope.isCollapsed = false;
-
-	$scope.dChange = function(value){
-		$scope.g12Data.dVariables.minNight = false;
-		$scope.g12Data.dVariables.avgDay = false;
-		$scope.g12Data.dVariables.maxDay = false;
-		$scope.g12Data.dVariables.minDay = false;
-
-		$scope.g12Data.dVariables[value] = true;
-	}
-
-	$scope.mChange = function(value){
-		$scope.g12Data.mVariables.minNight = false;
-		$scope.g12Data.mVariables.avgDay = false;
-		$scope.g12Data.mVariables.maxDay = false;
-		$scope.g12Data.mVariables.minDay = false;
-
-		$scope.g12Data.mVariables[value] = true;
-	}
-	
-	
-	/****************GC 27/11/2015***********/
-	$scope.listVariables = {};
-	$scope.g12Data.checkboxList = new Array();
-	$scope.checkboxListTemp = {};
-	$scope.isChekboxChecked = function(idDistricts,check)
-	{
-		console.log('IsCheckboxChecked',idDistricts,check)
-		var res = $scope.listVariables[''+idDistricts][check];
-		
-		var a = $scope.checkboxListTemp[''+idDistricts];
-		
-		if(a)
-			{
-			if(check == 0) res = a.minnight;
-			if(check == 1) res = a.avgday;
-			if(check == 2) res = a.maxday;
-			if(check == 3) res = a.minday;
-			}
-		return res;
-	};
-	/****************/
-
-	//inizializzo la data
-	$scope.date = GetUrlParameter('day');
-	if ($scope.date){ //data nella query string da lista eventi
-		$scope.duration = parseInt(GetUrlParameter('duration'));
-		$scope.year = parseInt($scope.date.substring(0, 4));
-		$scope.month = parseInt($scope.date.substring(5, 7)) - 1;
-		$scope.day = parseInt($scope.date.substring(8, 10));
-		$scope.g12Data.startDate = new Date($scope.year, $scope.month, $scope.day - $scope.duration - 2, 0, 0, 0);
-		$scope.g12Data.endDate = new Date($scope.year, $scope.month, $scope.day, 0, 0, 0);
-	} else { //comportamento di default
-		$scope.g12Data.startDate = new Date();
-		$scope.g12Data.endDate = new Date();
-		$scope.g12Data.startDate.setDate($scope.g12Data.endDate.getDate() - 30);
-	}
-	
-	//carico i distretti utilizzati per la ricerca
-	$scope.id = GetUrlParameter('idDistricts');
-	$scope.districts = Districts.getData(null, function (data) {
-									//id nella query string da lista eventi
-									if ($scope.id){
-										for (var i = 0; i < data.length; i++){
-											var d = data[i];
-											if($scope.id == d.idDistricts){
-												$scope.districtSelectedAdd(d, d, '');
-												break;
-											}
-										}
-										
-									
-									}
-									
-									/******GC 25/11/2015*/
-									$scope.filteredDistrictsData = [];
-									for(var c = 0; c < $scope.districts.length; c++){
-										var comboDistricts = {id:$scope.districts[c].idDistricts, label:$scope.districts[c].name};
-										$scope.filteredDistrictsData.push(comboDistricts);
-									
-										MeasuresHasDistricts.getByDistrictsId({districts_id: $scope.districts[c].idDistricts}, function(data2){
-											$scope.districtMeasures.push(data2.data.measures);
-											});
-									
-									}
-									/*******************/
-									
-									
-									/************* GC 26/11/2015****/
-									for(var c = 0; c < $scope.districts.length; c++){
-										//min_night,avg_day,max_day,min_day
-										var ar = [false,false,false,false];
-										
-										if($scope.districts[c].ev_variable_type == 0) ar[0] = true;
-										if($scope.districts[c].ev_variable_type == 3) ar[1] = true;
-										if($scope.districts[c].ev_variable_type == 2) ar[2] = true;
-										if($scope.districts[c].ev_variable_type == 1) ar[3] = true;
-										if($scope.districts[c].ev_variable_type == 4) ar[0] = true;
-										
-										$scope.listVariables[''+$scope.districts[c].idDistricts] = ar;
-										
-										var map = {"minnight":ar[0],"avgday":ar[1],"maxday":ar[2],"minday":ar[3]};
-										$scope.checkboxListTemp[''+$scope.districts[c].idDistricts] = map;
-									}
-									
-									
-									if ($scope.id)
-										{
-											/*GC 27/11/2015 */
-											var tempCheck = new Array();
-											$scope.g12Data.checkboxList = new Array();
-											for(var c = 0; c < $scope.g12Data.districtsSelected.length; c++){
-												var a = $scope.checkboxListTemp[''+$scope.g12Data.districtsSelected[c].idDistricts];
-												var t = new Array();
-												t[0] = ''+$scope.g12Data.districtsSelected[c].idDistricts;
-												t[1] = a;
-												tempCheck.push(t);
-											}
-											$scope.g12Data.checkboxList = tempCheck;
-										}
-									
-									return data;
-								});
-	
-
-	
-	
-	/*************************************************************/
-	//Inizio gestione Selezione Distretti 
-	$scope.districtSelectedAdd = function($item, $model, $label){
-		//prima di aggiungerlo, verifico se e' gia stato aggiunto
-		var alreadyAdded = false;
-
-		var d = $scope.g12Data.districtsSelected[0];
-		if(d && d.name == $item.name){
-			alreadyAdded = true;
-		}
-
-		if(!alreadyAdded){
-			/* GC - 29/10/2015 */
-			$model.measures = Measures.getDataByDistrictId({districtId: $model.idDistricts, withSign:true}, $scope, function () {
-																										//id nella query string da lista eventi
-																										if ($scope.id){
-																											$scope.loadData();
-																											$scope.dSelected = '';
-																										}
-																									});
-			$scope.g12Data.districtsSelected[0] = $model;
-		}
-		$scope.dSelected = new Object();
-		
-		$scope.g12Data.checkboxList = new Array();		
-		var a = $scope.checkboxListTemp[''+$scope.g12Data.districtsSelected[0].idDistricts];
-		var t = new Array();
-		t[0] = ''+$scope.g12Data.districtsSelected[0].idDistricts;
-		t[1] = a;
-		$scope.g12Data.checkboxList = [t]
-
-		$scope.filteredMeasuresModel = [];
-		$scope.g12Data.measuresSelected = [];
-	};
-		
-	$scope.districtSelectedRemove = function($item){
-		var d = $scope.g12Data.districtsSelected[0];
-		if(d && d.name == $item.name){
-			$scope.g12Data.districtsSelected = [];
-		}	
-		
-		/* GC 25/22/2015*/
-		var tempfilteredDistrictsModel = [];
-		for(var i = 0; i < $scope.filteredDistrictsModel.length; i++)
-			{
-				if($scope.filteredDistrictsModel[i].id !== $item.idDistricts)
-					{
-					tempfilteredDistrictsModel.push($scope.filteredDistrictsModel[i]);
-					}
-			}
-		$scope.filteredDistrictsModel = tempfilteredDistrictsModel;
-		
-		/*GC 27/11/2015 */
-		var tempCheck = new Array();
-		$scope.g12Data.checkboxList = new Array();
-		for(var c = 0; c < $scope.g12Data.districtsSelected.length; c++){
-			var a = $scope.checkboxListTemp[''+$scope.g12Data.districtsSelected[c].idDistricts];
-			var t = new Array();
-			t[0] = ''+$scope.g12Data.districtsSelected[c].idDistricts;
-			t[1] = a;
-			tempCheck.push(t);
-		}
-		$scope.g12Data.checkboxList = tempCheck;
-		
-		
-	};
-	//Fine gestione Selezione Distretti
-/*****************************************************************/
-	
-	//***RC 01/12/2015***
-	$scope.showDialog = function () {
-		$scope.confDialog = true;
-	};
-	
-	$scope.dialogCancelled = function () {
-		$scope.confDialog = false;
-	};
-	
-	$scope.saveConf = function () {
-		if($scope.g12Data.districtsSelected.length > 0 || $scope.g12Data.measuresSelected.length > 0){
-			
-			var desc = document.getElementById("confDesc").value;
-			$scope.g12Data.descriptionConfiguration = desc;
-			
-			G12CONF.saveG12Configuration($scope.g12Data, function (data) {
-				
-				G12CONF.getData(function (data) {
-					$scope.configList = data;
-				});
-				G12CONFPARAM.getData(function (data) {
-					$scope.paramList = data;
-				});
-			});	
-			
-		}
-	};
-	
-	$scope.configSelected = function (config) {
-		
-		var configParamsList = [];
-		var districtsParamList = [];
-		var measuresParamList = [];
-		
-		for(var i = 0; i < $scope.paramList.length; i++) {
-			if(($scope.paramList[i].users_cfgs_parent_save_date == config.save_date) && ($scope.paramList[i].users_cfgs_parent_submenu_function == 7)){
-				configParamsList.push($scope.paramList[i]);
-			}
-		}
-		
-		for(var i = 0; i < configParamsList.length; i++) {
-			if(configParamsList[i].type == 1){	//DISTRETTI
-				for(var x = 0; x < $scope.districts.length; x++) {
-					if(configParamsList[i].objectid == $scope.districts[x].idDistricts){
-						
-						/* GC - 12/11/2015 */
-						var measTemp = Measures.getDataByDistrictId({districtId: $scope.districts[x].idDistricts, withSign:true}, $scope, function () {
-																													//id nella query string da lista eventi
-																													if ($scope.id){
-																														$scope.loadData();
-																														$scope.dSelected = '';
-																													}
-																												});
-						$scope.districts[x].measures = measTemp;
-						/******/
-						
-						
-						
-						districtsParamList.push($scope.districts[x]);
-					}
-				}
-			}else{	//MISURE
-				for(var x = 0; x < $scope.measures.length; x++) {
-					if(configParamsList[i].objectid == $scope.measures[x].idMeasures){
-						measuresParamList.push($scope.measures[x]);
-					}
-				}
-			}
-		}
-		$scope.g12Data.districtsSelected = null;
-		$scope.g12Data.measuresSelected = null;
-		$scope.g12Data.districtsSelected = districtsParamList;
-		$scope.g12Data.measuresSelected = measuresParamList;
-	
-		var tempCheck = new Array();
-		$scope.g12Data.checkboxList = new Array();
-		for(var c = 0; c < $scope.g12Data.districtsSelected.length; c++){
-			var a = $scope.checkboxListTemp[''+$scope.g12Data.districtsSelected[c].idDistricts];
-			var t = new Array();
-			t[0] = ''+$scope.g12Data.districtsSelected[c].idDistricts;
-			t[1] = a;
-			tempCheck.push(t);
-		}
-		$scope.g12Data.checkboxList = tempCheck;
-	};
-	
-	$scope.configDeleted = function (config) {
-
-		var _date = $filter('date')(config.save_date, 'yyyy-MM-dd HH:mm:ss');
-		
-		G12CONF.remove({parent: _date}, function (data) {
-			//alert(data);
-			G12CONF.getData(function (data) {
-				$scope.configList = data;
-			});
-			G12CONFPARAM.getData(function (data) {
-				$scope.paramList = data;
-			});
-		});	
-	};
-	
-	//***END***
-	
-	
-	/********************************************************************/
-	
-	//Inizio gestione Selezione Measures 
-	$scope.measureSelectedAdd = function($item, $model, $label){
-		//prima di aggiungerlo, verifico se e' gia stato aggiunto
-		var alreadyAdded = false;
-		var d = $scope.g12Data.measuresSelected[0];		
-		if(d && d.name == $item.name){
-			alreadyAdded = true;
-		}
-		if(!alreadyAdded){
-			$scope.g12Data.measuresSelected[0] = $model;			
-		}
-
-		$scope.filteredDistrictsModel = [];
-		$scope.g12Data.districtsSelected = [];
-	}
-		
-	$scope.measureSelectedRemove = function($item){
-		var tempSelected = new Array();
-		for(var i=0; i< $scope.g12Data.measuresSelected.length; i++){
-			var d = $scope.g12Data.measuresSelected[i];
-			if(d.name !== $item.name){
-				tempSelected.push(d);
-			}
-		}
-		$scope.g12Data.measuresSelected = tempSelected;
-		
-		/* GC 25/22/2015*/
-		var tempfilteredMeasuresModel = [];
-		for(var i = 0; i < $scope.filteredMeasuresModel.length; i++)
-			{
-				if($scope.filteredMeasuresModel[i].id !== $item.idMeasures)
-					{
-					tempfilteredMeasuresModel.push($scope.filteredMeasuresModel[i]);
-					}
-			}
-		$scope.filteredMeasuresModel = tempfilteredMeasuresModel;
-	}
-	//Fine gestione Selezione Measures
-	
-	
-	/********************************************************************/
-	
-	/****************filtro distretti e misure da zona e societa******/
-	
-	$scope.updateMeasuresSelectByDistrictsFiltered = function ()
-	{
-		$scope.filteredMeasuresData = [];
-		$scope.filteredMeasuresModel = [];
-
-		/****** GC 14/12/2015*/
-		$scope.filteredMeasuresDataMap = {};
-		/*******/
-		
-		for(var j = 0; j < $scope.districtMeasures.length; j++)
-			{
-			var temp = $scope.districtMeasures[j];
-			
-			for(var z = 0; z < temp.length; z++)
-				{
-				var idDistr = temp[z].districts_id_districts;
-				var idMeas = temp[z].measures_id_measures;
-				
-				var nameMeas = temp[z].measures_name;
-				var nameDistr = temp[z].districts_name;
-				
-				for(var y = 0; y < $scope.filteredDistrictsData.length; y++)
-					{
-					
-					var idD=$scope.filteredDistrictsData[y].id;
-						if(idD === idDistr){
-							/****** GC 14/12/2015*/
-							if($scope.filteredMeasuresDataMap[""+idMeas] == null)
-							{	
-								/*******/
-								var comboMeasures = {id:idMeas, label:nameMeas};
-								$scope.filteredMeasuresData.push(comboMeasures);
-								/****** GC 14/12/2015*/
-								$scope.filteredMeasuresDataMap[""+idMeas] = comboMeasures;
-								/*******/
-								break;
-							}
-						}
-					}
-				
-				
-				}
-			}
-		
-		/****** GC 14/12/2015*/
-		//ordino alfabeticamente
-		$scope.filteredMeasuresData.sort(function(a, b) {
-			return a.label.localeCompare(b.label);
-		});
-		/*******/
-		
-	};
-	
-	
-	$scope.filterDistricts = function(filterType) {
-		
-		$scope.filteredDistrictsData = [];
-		$scope.filteredDistrictsModel = [];
-			
-		if(filterType == 'zone'){
-			
-			$scope.filterValueW = '';
-			if($scope.filterValueZ === '')
-				{
-					for(var c = 0; c < $scope.districts.length; c++){
-								var comboDistricts = {id:$scope.districts[c].idDistricts, label:$scope.districts[c].name};
-							$scope.filteredDistrictsData.push(comboDistricts);
-					}
-				}
-			else{
-				for(var c = 0; c < $scope.districts.length; c++){
-					var zone = $scope.districts[c].zone;
-					if(zone != null && zone.trim().length>0 && zone.toUpperCase() == $scope.filterValueZ.toUpperCase()){
-							var comboDistricts = {id:$scope.districts[c].idDistricts, label:$scope.districts[c].name};
-						$scope.filteredDistrictsData.push(comboDistricts);
-					}
-				}
-			}
-		}else{
-			$scope.filterValueZ = '';
-			if($scope.filterValueW === '')
-			{
-				for(var c = 0; c < $scope.districts.length; c++){
-						var comboDistricts = {id:$scope.districts[c].idDistricts, label:$scope.districts[c].name};
-						$scope.filteredDistrictsData.push(comboDistricts);
-				}
-			}
-			else {
-				for(var c = 0; c < $scope.districts.length; c++){
-					var waterAuthority = $scope.districts[c].waterAuthority;
-					if(waterAuthority != null && waterAuthority.trim().length>0 && waterAuthority.toUpperCase() == $scope.filterValueW.toUpperCase()){
-						var comboDistricts = {id:$scope.districts[c].idDistricts, label:$scope.districts[c].name};
-						$scope.filteredDistrictsData.push(comboDistricts);
-					}
-				}
-			}
-		}
-		
-		$scope.updateMeasuresSelectByDistrictsFiltered();
-	};
-		
-	$scope.getDistrictById = function(id)
-	{
-		var d = null;
-		for(var i = 0; i < $scope.districts.length;i++)
-			{
-				if($scope.districts[i].idDistricts === id)
-					{
-					d = $scope.districts[i];
-					break;
-					}
-			}
-		
-		return d;
-	};
-		
-	$scope.getMeasuresById = function(id)
-	{
-		var d = null;
-		for(var i = 0; i < $scope.measures.length;i++)
-			{
-				if($scope.measures[i].idMeasures === id)
-					{
-					d = $scope.measures[i];
-					break;
-					}
-			}
-		
-		return d;
-	};
-		
-		$scope.filteredDistrictsEvents = {
-				onItemSelect: 
-					function(item) {
-					var d = $scope.getDistrictById(item.id);
-					$scope.districtSelectedAdd(d, d, '');
-					
-					/*GC 27/11/2015*/
-						var a = $scope.checkboxListTemp[''+item.id];
-						var t = new Array();
-						t[0] = ''+item.id;
-						t[1] = a;
-						$scope.g12Data.checkboxList.push(t);
-					},
-				onItemDeselect: 
-					function(item) {
-							var tempSelected = new Array();
-						for(var i=0; i< $scope.g12Data.districtsSelected.length; i++){
-							var d = $scope.g12Data.districtsSelected[i];
-							if(d.idDistricts !== item.id){
-								tempSelected.push(d);
-							}
-						}
-						$scope.g12Data.districtsSelected = tempSelected;
-						
-						var tempCheck = new Array();
-						for(var c = 0; c < $scope.g12Data.districtsSelected.length; c++){
-							var a = $scope.checkboxListTemp[''+$scope.g12Data.districtsSelected[c].idDistricts];
-							var t = new Array();
-							t[0] = ''+$scope.g12Data.districtsSelected[c].idDistricts;
-							t[1] = a;
-							tempCheck.push(t);
-						}
-						$scope.g12Data.checkboxList = tempCheck;
-						
-						}
-		};
-		
-		$scope.filteredMeasuresEvents = {
-				onItemSelect: 
-					function(item) {
-					var d = $scope.getMeasuresById(item.id);
-					$scope.measureSelectedAdd(d, d, '');
-					},
-				onItemDeselect: 
-					function(item) {
-						var tempSelected = new Array();
-						for(var i=0; i< $scope.g12Data.measuresSelected.length; i++){
-							var d = $scope.g12Data.measuresSelected[i];
-							if(d.idMeasures !== item.id){
-								tempSelected.push(d);
-							}
-						}
-						$scope.g12Data.measuresSelected = tempSelected;
-						}
-		};
-			//***END***
-	
-		/*************************************/
-
-	// callback for ng-click 'loadData':
-	$scope.loadData = function() {
-		$('#modalLoading').modal('show');
-		if ($scope.g12Data.startDate != undefined && $scope.g12Data.endDate != undefined
-				&& ($scope.g12Data.districtsSelected != undefined || $scope.g12Data.measuresSelected != undefined)) {
-
-			//Verifico che il range di date sia maggiore di 2 anni
-			var oneDayMillis = 1000*60*60*24;
-			var minRange = 2*365*oneDayMillis;			
-			$scope.dataError=false;
-			$scope.rangeError=false;
-			if ((new Date($scope.g12Data.endDate) - new Date($scope.g12Data.startDate))<minRange){
-				$scope.rangeError = true;
-				$('#modalLoading').modal('hide');
-				return;
-			}
-			G12.getData($scope.g12Data, function(data) {
-				if (data.status == 'fail'){
-					$scope.dataError = true;
-					$('#modalLoading').modal('hide');
-					return;
-				}
-				/*GC 02/11/2015*/				
-				$scope.g12Data.medie = data.medie;
-				$scope.g12Data.columns = data.columns;
-
-				/*RQ 05-2019 */
-				$scope.g12Data.events = data.events;
-
-				var timeSeries = angular.fromJson(data.columns.timeSeries);
-				var seasonal = angular.fromJson(data.columns.seasonal);
-				var trend = angular.fromJson(data.columns.trend);
-				var residual = angular.fromJson(data.columns.residual);
-
-				var maxData = data.columns.timeSeries[0][data.columns.timeSeries[0].length - 1];
-				var countNullValues = {};
-				var chartSize = 300;
-				var dataFormat =  '%Y-%m';
-				var chart = c3.generate({
-					bindto : '#time-series-chart',
-					data : {
-						x : 'x',
-						xFormat : '%Y-%m-%d %I:%M:%S', // 'xFormat' can be used as custom format of 'x'
-						columns : timeSeries,
-						onclick: function(d, element) {
-							removeValueFromChart(this, d);							
-						},
-					},
-					color:{
-						pattern: ['#dadf06']
-					},
-					line: {
-						connectNull: true,
-					},
-					zoom: {
-							enabled: true,
-							rescale: true
-						},
-					axis : {
-						x : {
-							type : 'timeseries',
-							tick : {
-								fit : false,
-								rotate : 15,
-								format : dataFormat
-							},
-							height : 70
-						},
-					},
-					point : {
-						show : false,
-						select:{
-							r: 4
-						}
-					},
-					legend : {
-						show : true
-					},
-					grid : {
-						x : {
-							show : true
-						}
-					},
-					size : {
-						height : chartSize
-					},
-					padding: {
-						left: 100,
-						right: 50
-					},
-					line: {
-						connectNull: true,
-					}
-				});
-				var chart2 = c3.generate({
-					bindto : '#trend-chart',
-					data : {
-						x : 'x',
-						xFormat : '%Y-%m-%d %I:%M:%S', // 'xFormat' can be used as custom format of 'x'
-						columns : trend,
-						onclick: function(d, element) {
-							removeValueFromChart(this, d);							
-						},
-					},					
-					color:{
-						pattern:['#0058ff']
-					},
-					line: {
-						connectNull: true,
-					},
-					zoom: {
-							enabled: true,
-							rescale: true
-						},
-					axis : {
-						x : {
-							type : 'timeseries',
-							tick : {
-								fit : false,
-								rotate : 15,
-								format : dataFormat
-							},
-							height : 70
-						},
-					},
-					point : {
-						show : false,
-						select:{
-							r: 4
-						}
-					},
-					legend : {
-						show : true
-					},
-					grid : {
-						x : {
-							show : true
-						}
-					},
-					size : {
-						height : chartSize
-					},
-					padding: {
-						left: 100,
-						right: 50
-					},
-					line: {
-						connectNull: true,
-					}
-				});
-				var chart3 = c3.generate({
-					bindto : '#seasonal-chart',
-					data : {
-						x : 'x',
-						xFormat : '%Y-%m-%d %I:%M:%S', // 'xFormat' can be used as custom format of 'x'
-						columns : seasonal,
-						onclick: function(d, element) {
-							removeValueFromChart(this, d);							
-						},
-					},
-					color:{
-						pattern: ['#26df06']
-					},
-					line: {
-						connectNull: true,
-					},
-					zoom: {
-							enabled: true,
-							rescale: true
-						},
-					axis : {
-						x : {
-							type : 'timeseries',
-							tick : {
-								fit : false,
-								rotate : 15,
-								format : dataFormat
-							},
-							height : 70
-						},
-					},
-					point : {
-						show : false,
-						select:{
-							r: 4
-						}
-					},
-					legend : {
-						show : true
-					},
-					grid : {
-						x : {
-							show : true
-						}
-					},
-					size : {
-						height : chartSize
-					},
-					padding: {
-						left: 50,
-						right: 100
-					},
-					line: {
-						connectNull: true,
-					}
-				});
-				var chart4 = c3.generate({
-					bindto : '#residue-chart',
-					data : {
-						x : 'x',
-						xFormat : '%Y-%m-%d %I:%M:%S', // 'xFormat' can be used as custom format of 'x'
-						columns : residual,
-						onclick: function(d, element) {
-							removeValueFromChart(this, d);							
-						},
-					},
-					color:{
-						pattern:['#df0618']
-					},
-					line: {
-						connectNull: true,
-					},
-					zoom: {
-							enabled: true,
-							rescale: true
-						},
-					axis : {
-						x : {
-							type : 'timeseries',
-							tick : {
-								fit : false,
-								rotate : 15,
-								format : dataFormat
-							},
-							height : 70
-						},
-					},
-					point : {
-						show : false,
-						select:{
-							r: 4
-						}
-					},
-					legend : {
-						show : true
-					},
-					grid : {
-						x : {
-							show : true
-						}
-					},
-					size : {
-						height : chartSize
-					},
-					padding: {
-						left: 50,
-						right: 100
-					},
-					line: {
-						connectNull: true,
-					}
-				});
-				
-				assignYAxisToData(chart, data); // RF
-
-				//Ricalcolo Range	
-				let slicedTime = timeSeries[1].slice(1);
-				let slicedSeasonal = seasonal[1].slice(1);
-				let slicedResidual = trend[1].slice(1);
-				let slicedTrend = residual[1].slice(1);
-				let numMax = Math.max(...slicedTime,...slicedSeasonal,...slicedResidual,...slicedTrend);
-				let numMin = Math.min(...slicedTime,...slicedSeasonal,...slicedResidual,...slicedTrend);						
-				setChartYRange(chart, numMin, numMax, $scope.minY2, $scope.maxY2);			
-				setChartYRange(chart2, numMin, numMax, $scope.minY2, $scope.maxY2);
-				setChartYRange(chart3, numMin, numMax, $scope.minY2, $scope.maxY2);
-				setChartYRange(chart4, numMin, numMax, $scope.minY2, $scope.maxY2);
-
-				//Data for CSV
-				let seasonalCSV = data.columns.seasonal[1].slice(0);				
-				let trendCSV = data.columns.trend[1].slice(0);
-				let residualCSV = data.columns.residual[1].slice(0);
-
-				seasonalCSV[0] = seasonalCSV[0] + " - SEASONAL";
-				trendCSV[0] = trendCSV[0] + " - TREND";
-				residualCSV[0] =  residualCSV[0] + " - RESIDUAL";
-
-				$scope.columns = data.columns.timeSeries;
-				$scope.columns.push(seasonalCSV);
-				$scope.columns.push(trendCSV);
-				$scope.columns.push(residualCSV);
-
-				$('#modalLoading').modal('hide');
-			});
-		}
-	}
-
-	/*RQ 05-2019 */
-	function addEventPoints(chart, data){		
-		data.events.forEach(markedEvents => {
-			chart.select(markedEvents[0],markedEvents[1]);
-		});		
-	}
-
-	// callback for ng-click 'exportCSV':
-	$scope.exportCSV = function () {
-		$http({method: 'POST', url: '/wetnet/rest/d3/g12/csv', data: $scope.columns}).
-			success(function(data, status, headers, config) {
-				var element = angular.element('#exportCSV');
-				element.attr({
-					href: 'data:attachment/csv;charset=utf-8,' + encodeURI(data),
-					target: '_blank',
-					download: 'chart12.csv'
-				});
-			}).
-			error(function(data, status, headers, config) {
-			// if there's an error you should see it here
-			});
-	}
-
-	// configurazioni datepicker
-	$scope.openStartDate = function($event) {
-		$event.preventDefault();
-		$event.stopPropagation();
-		$scope.openedStartDate = true;
-	};
-	$scope.openEndDate = function($event) {
-		$event.preventDefault();
-		$event.stopPropagation();
-		$scope.openedEndDate = true;
-	};
-
-	//configurazioni timepicker
-	$scope.hstep = 1;
-	$scope.mstep = 10;
-
-	$scope.updateDate = function() {
-		if ($scope.radioModel === '1d'){
-			$scope.g12Data.endDate = new Date();
-		}
-		$scope.g12Data.startDate = TimeSelectorRadio($scope.radioModel, $scope.g12Data.endDate);
-	}
-	
-
-	/*
-		* GC - 29/10/2015
-		*/
-	$scope.checkSign = function(elem) {
-	if(elem == '0') return '+';
-	else if(elem == '1') return '-';
-	else return '*';
-	};	
-}]);
-
-
-/* CHART UTILS */
 
 //RF - imposta range per assi Y di un grafico (solo per i grafici C3js)
 function setChartYRange(chart, minY, maxY, minY2, maxY2) {
@@ -4777,28 +3383,4 @@ function assignYAxisToData(chart, data) {
 		}
 	}
 	chart.flush();
-}
-
-/**
- * RQ-08-2019-B
- * Calcola le medie dei valori di un grafico appartenenti al dominio corrente.
- * @param  {Object} chart 	Oggetto interno del grafico C3.
- * @return {Array} 	Le medie calcolate per tutti i dati mostrati nel grafico.
- */
-function average(chart) {
-	var avgs = [], domain = chart.x.domain(), i = 0, startXIndex, endXIndex;
-
-	// Trova indici degli estremi del dominio nell'array dei dati
-	while (chart.xs[i] < domain[0]) { i++; }
-	startXIndex = i; // estremo sinistro incluso
-	while (chart.xs[i] <= domain[1]) { i++; }
-	endXIndex = i; // estremo destro escluso
-
-	// Calcola le nuove medie
-	chart.data.targets.forEach(function(d) {
-		var avg = {}, values = d.values.slice(startXIndex, endXIndex);
-		avg[d.id] = values.reduce(function (tot, v) { return tot + v.value; }, 0) / values.length;
-		avgs.push(avg);
-	});
-	return avgs;
 }

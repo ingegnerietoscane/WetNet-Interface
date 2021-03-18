@@ -34,9 +34,6 @@
             <li><a href="<c:url value="/wetnet/graphics/statistic-g7" />" ><spring:message code="dashboard.graphics.g7.title" /></a></li>
             <li><a href="<c:url value="/wetnet/graphics/statistic-g8" />" ><spring:message code="dashboard.graphics.g8.title" /></a></li>
             <li><a href="<c:url value="/wetnet/graphics/statistic-g9" />" ><spring:message code="dashboard.graphics.g9.title" /></a></li>
-            <li><a href="<c:url value="/wetnet/graphics/statistic-g10" />" ><spring:message code="dashboard.graphics.g10.title" /></a></li>
-            <li><a href="<c:url value="/wetnet/graphics/statistic-g11" />" ><spring:message code="dashboard.graphics.g11.title" /></a></li>
-            <li><a href="<c:url value="/wetnet/graphics/statistic-g12" />" ><spring:message code="dashboard.graphics.g12.title" /></a></li>
           </ul>
         </li>
         </sec:authorize>

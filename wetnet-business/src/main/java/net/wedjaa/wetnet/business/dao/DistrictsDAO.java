@@ -5,8 +5,6 @@ import java.util.List;
 
 import net.wedjaa.wetnet.business.domain.Districts;
 import net.wedjaa.wetnet.business.domain.DistrictsBandsHistory;
-import net.wedjaa.wetnet.business.domain.DistrictsLevelInhabitantsData;
-import net.wedjaa.wetnet.business.domain.DistrictsLevelLengthData;
 import net.wedjaa.wetnet.business.domain.MeasuresHasDistricts;
 import net.wedjaa.wetnet.business.domain.Users;
 
@@ -103,9 +101,4 @@ public interface DistrictsDAO {
 
 		public List<DistrictsBandsHistory> getLastBandsHistoryByDistrictsOnTimestampDesc(Date startDate, Date endDate,
 				long idDistricts);
-
-    /* RQ 04-2019 */
-    List<DistrictsLevelLengthData> getDistrictsLengthMainByMapLevel();
-
-    List<DistrictsLevelInhabitantsData> getDistrictsInhabitantsByMapLevel();
 }

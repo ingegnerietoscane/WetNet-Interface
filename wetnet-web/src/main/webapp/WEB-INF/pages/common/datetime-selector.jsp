@@ -8,8 +8,4 @@
     <a href="#" class="btn btn-success" ng-change="updateDate()" ng-model="radioModel" btn-radio="'3m'" title="<spring:message code="time.form.3m-title" />"><spring:message code="time.form.3m" /></a>
     <a href="#" class="btn btn-success" ng-change="updateDate()" ng-model="radioModel" btn-radio="'6m'" title="<spring:message code="time.form.6m-title" />"><spring:message code="time.form.6m" /></a>
     <a href="#" class="btn btn-success" ng-change="updateDate()" ng-model="radioModel" btn-radio="'1y'" title="<spring:message code="time.form.1y-title" />"><spring:message code="time.form.1y" /></a>
-
-    <!--***RQ 01-2019***  -->
-    <a href="#" class="btn btn-success" ng-change="updateDate()" ng-model="radioModel" btn-radio="'3y'" title="<spring:message code="time.form.3y-title" />"><spring:message code="time.form.3y" /></a>   
-    <a href="#" class="btn btn-success" ng-change="updateDate()" ng-model="radioModel" btn-radio="'5y'" title="<spring:message code="time.form.5y-title" />"><spring:message code="time.form.5y" /></a>
 </div>

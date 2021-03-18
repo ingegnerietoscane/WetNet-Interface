@@ -228,25 +228,4 @@ public class GraphicsController {
 	public String getGraphicG9() {
 		return "wetnet/graphics/statistic-g9";
 	}
-
-	@RequestMapping(value = "/statistic-g10", method = RequestMethod.GET)
-	public String getGraphicG10() {
-		return "wetnet/graphics/statistic-g10";
-	}
-
-	@RequestMapping(value = "/statistic-g11", method = RequestMethod.GET)
-	public String getGraphicG11() {
-		return "wetnet/graphics/statistic-g11";
-	}
-
-	@RequestMapping(value = "/statistic-g12", method = RequestMethod.GET)
-    public String getGraphicG12(ModelMap model, Principal principal,
-                            @RequestParam(value = "idDistricts", required = false) Long idDistricts, @RequestParam(value = "day", required = false) String day,
-                            @RequestParam(value = "duration", required = false) Long duration) {
-        model.put("idDistricts", idDistricts);
-        model.put("day", day);
-        model.put("duration", duration);
-        return "wetnet/graphics/statistic-g12";
-    }
-
 }

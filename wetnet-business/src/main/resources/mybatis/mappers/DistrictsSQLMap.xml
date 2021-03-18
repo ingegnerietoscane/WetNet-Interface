@@ -31,21 +31,7 @@
         <!-- /* GC - 22/10/2015
         <result property="measures_connections_id_odbcdsn" column="measures_connections_id_odbcdsn" />
         -->
-	</resultMap>
-
-	
-	<resultMap id="districtsLengthResultMap" type="net.wedjaa.wetnet.business.domain.DistrictsLevelLengthData">
-		<result property="mapLevel" column="map_level" />
-		<result property="eventVariableType" column="ev_variable_type" />
-		<collection property="districtsLength" column="mapLevel=map_level, evVariableType=ev_variable_type" select="getLengthMainByMapLevelAndEvVariableType"/>
-	</resultMap>
-
-	<resultMap id="districtsInhabitantsResultMap" type="net.wedjaa.wetnet.business.domain.DistrictsLevelInhabitantsData">
-		<result property="mapLevel" column="map_level" />
-		<result property="eventVariableType" column="ev_variable_type" />
-		<collection property="districtsInhabitants" column="mapLevel=map_level, evVariableType=ev_variable_type" select="getInhabitantsByMapLevelAndEvVariableType"/>
-	</resultMap>
-
+    </resultMap>
 	
     <select id="getAllDistricts" resultMap="districtsResultMap">
         SELECT d.* FROM districts as d
@@ -261,30 +247,6 @@
     <select id="measuresHasDistrictsBydIdDistricts" resultMap="measuresHasDistrictsResultMap" parameterType="java.lang.Long">
     	SELECT measures_has_districts.*, districts.name as districts_name, measures.name as measures_name FROM measures_has_districts inner join districts on (districts_id_districts = id_districts) inner join measures on (measures_id_measures = id_measures) where measures_has_districts.districts_id_districts = #{value}
     </select>
-
-	<!-- RQ 04-2019 -->
-	<select id="getDistrictsLengthMainByMapLevel" resultMap="districtsLengthResultMap">
-		SELECT DISTINCT 	map_level, ev_variable_type
-		FROM        		districts
-		ORDER BY   			map_level, ev_variable_type
-	</select>
-
-	<select id="getLengthMainByMapLevelAndEvVariableType" resultType="Double">
-		SELECT 	IFNULL(length_main / 1000,0) AS length
-		FROM    districts
-		WHERE   map_level = #{mapLevel} AND ev_variable_type = #{evVariableType}
-	</select>
-
-	<select id="getDistrictsInhabitantsByMapLevel" resultMap="districtsInhabitantsResultMap">
-		SELECT 		map_level, ev_variable_type
-		FROM   		districts
-		ORDER BY   	map_level, ev_variable_type
-	</select>
-
-	<select id="getInhabitantsByMapLevelAndEvVariableType" resultType="Long">
-		SELECT 	IFNULL(inhabitants, 0)
-		FROM    districts
-		WHERE   map_level = #{mapLevel} AND ev_variable_type = #{evVariableType}
-	</select>
     
 </mapper>
+

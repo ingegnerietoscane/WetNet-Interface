@@ -170,9 +170,9 @@ wetnetDashboardControllers.controller("DashboardController", ['$scope', '$http',
  	$scope.showDistrictsLevels2 = true;
  	$scope.showDistrictsLevels3 = false;
  	$scope.showDistrictsLevels4 = false;
-
+ 	
  	$scope.settingsCheck.districtLevel1 = false;
-	$scope.settingsCheck.districtLevel2 = true;    
+	$scope.settingsCheck.districtLevel2 = true;
 	$scope.settingsCheck.districtLevel3 = false;
 	$scope.settingsCheck.districtLevel4 = false;
 	
@@ -191,21 +191,20 @@ wetnetDashboardControllers.controller("DashboardController", ['$scope', '$http',
 	$scope.settingsCheck.measureType3 = false;
 	$scope.settingsCheck.measureType4 = false;
 	
-	 
-	//***RQ 02-2019***
- 	$scope.showEventsTypes = false;     
+ 	
+ 	$scope.showEventsTypes = true;
  	$scope.showEventsTypes1 = true;
  	$scope.showEventsTypes2 = true;
- 	$scope.showEventsTypes3 = false;    
- 	$scope.showEventsTypes4 = false;    
- 	$scope.showEventsTypes5 = false;    
+ 	$scope.showEventsTypes3 = true;
+ 	$scope.showEventsTypes4 = true;
+ 	$scope.showEventsTypes5 = true;
  	
  	
  	$scope.settingsCheck.eventType1 = true;
 	$scope.settingsCheck.eventType2 = true;
-	$scope.settingsCheck.eventType3 = false;    
-	$scope.settingsCheck.eventType4 = false;    
-	$scope.settingsCheck.eventType5 = false;    
+	$scope.settingsCheck.eventType3 = true;
+	$scope.settingsCheck.eventType4 = true;
+	$scope.settingsCheck.eventType5 = true;
 	
  	
  	$scope.showEventsMarkers = false;
@@ -1468,7 +1467,7 @@ wetnetDashboardControllers.controller("DashboardController", ['$scope', '$http',
  	 	$scope.showEventsTypes3 = $scope.showEventsTypes;
  	 	$scope.showEventsTypes4 = $scope.showEventsTypes;
  	 	$scope.showEventsTypes5 = $scope.showEventsTypes;
-
+ 	 	
  	 	$scope.updateView();
  	}
  	

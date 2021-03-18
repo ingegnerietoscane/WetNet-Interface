@@ -24,15 +24,4 @@ public final class NumberUtil {
         double result = Math.round(number*pow)/pow;
         return result;
     }
-
-    public static double percentage(double value, double total) {
-        return total != 0 ? value * 100 / total : 0;
-    }
-
-    public static double percentage(double value, double total, int precision) {
-        double percentage = total != 0 ? value * 100 / total : 0;
-        double f = 10 * precision;
-        return Math.round(percentage * f) / f;
-    }
-
 }
